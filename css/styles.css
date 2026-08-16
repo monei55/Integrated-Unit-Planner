@@ -63,3 +63,79 @@
     grid-template-columns:1fr;
   }
 }
+.integration-curriculum-summary{
+  display:grid;
+  grid-template-columns:
+    repeat(auto-fit,minmax(260px,1fr));
+  gap:12px;
+  margin:14px 0 22px;
+}
+
+.integration-subject-card,
+.confirmed-connection-card{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  padding:14px;
+}
+
+.integration-subject-card{
+  position:relative;
+}
+
+.integration-subject-card>.count-pill{
+  float:right;
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#eef5fb;
+}
+
+.integration-aspect-list{
+  clear:both;
+  display:grid;
+  gap:7px;
+  margin-top:12px;
+}
+
+.integration-aspect-list>div{
+  padding:8px 10px;
+  border-radius:8px;
+  background:#f7f9fb;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.integration-suggestion{
+  margin:8px 0;
+  padding:10px 12px;
+  border-radius:9px;
+  background:#f7fafc;
+}
+
+.connection-chip-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+}
+
+.connection-chip{
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:999px;
+  background:#edf6f2;
+  font-size:11px;
+}
+
+.confirmed-connection-card{
+  margin:10px 0;
+  display:grid;
+  gap:10px;
+}
+
+.connection-card-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
