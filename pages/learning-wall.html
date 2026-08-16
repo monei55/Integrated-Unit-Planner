@@ -1,0 +1,306 @@
+<section class="panel" id="learningWall">
+
+  <div class="section-head">
+
+    <div>
+
+      <div class="eyebrow">
+        Step 8
+      </div>
+
+      <h2>
+        Learning Wall & Bump-It-Up Wall
+      </h2>
+
+      <p class="muted">
+        Generate a ready-to-use visual design prompt from the unit plan.
+        Copy the prompt into ChatGPT to create and customise a classroom-ready visual.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <!-- ======================================================
+       LEARNING WALL PROMPT
+       ====================================================== -->
+
+  <section class="wall-section">
+
+    <div class="wall-section-head">
+
+      <div>
+
+        <h3>
+          Learning Wall visual
+        </h3>
+
+        <p>
+          Build a prompt using the unit title, curriculum demands,
+          KNOW / UNDERSTAND / DO, learning sequence and success criteria.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="grid two">
+
+      <label>
+
+        Type of visual
+
+        <select id="learningWallType">
+
+          <option value="complete">
+            Complete Learning Wall
+          </option>
+
+          <option value="intentions">
+            Learning Intentions & Success Criteria
+          </option>
+
+          <option value="vocabulary">
+            Vocabulary Display
+          </option>
+
+          <option value="concept">
+            Concept / Big Ideas Display
+          </option>
+
+          <option value="worked">
+            Worked Example / Annotated Model
+          </option>
+
+        </select>
+
+      </label>
+
+
+      <label>
+
+        Visual style
+
+        <select id="learningWallStyle">
+
+          <option value="classroom">
+            Classroom Display
+          </option>
+
+          <option value="journey">
+            Learning Journey
+          </option>
+
+          <option value="clean">
+            Clean Professional
+          </option>
+
+          <option value="primary">
+            Colourful Primary
+          </option>
+
+          <option value="minimal">
+            Simple & Minimal
+          </option>
+
+        </select>
+
+      </label>
+
+    </div>
+
+
+    <div class="section-actions">
+
+      <button
+        type="button"
+        id="generateLearningWallPrompt"
+        class="secondary"
+      >
+        Generate Learning Wall Prompt
+      </button>
+
+      <button
+        type="button"
+        id="copyLearningWallPrompt"
+        class="secondary"
+        disabled
+      >
+        Copy Prompt
+      </button>
+
+    </div>
+
+
+    <label>
+
+      Generated prompt
+
+      <textarea
+        id="learningWallPrompt"
+        rows="18"
+        placeholder="Generate the Learning Wall prompt, then review or edit it before copying..."
+      ></textarea>
+
+    </label>
+
+
+    <div
+      id="learningWallPromptMessage"
+      class="suggestion-box"
+    ></div>
+
+  </section>
+
+
+  <!-- ======================================================
+       BUMP-IT-UP WALL PROMPT
+       ====================================================== -->
+
+  <section class="wall-section">
+
+    <div class="wall-section-head">
+
+      <div>
+
+        <h3>
+          Bump-It-Up Wall visual
+        </h3>
+
+        <p>
+          Build a student-friendly visual progression using the
+          assessment and Marking Guide developed earlier in the planner.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="grid two">
+
+      <label>
+
+        Progression style
+
+        <select id="biuWallStyle">
+
+          <option value="stairs">
+            Stairs to Success
+          </option>
+
+          <option value="pathway">
+            Learning Pathway
+          </option>
+
+          <option value="columns">
+            Progression Columns
+          </option>
+
+          <option value="levels">
+            What Improvement Looks Like
+          </option>
+
+        </select>
+
+      </label>
+
+
+      <label>
+
+        Visual style
+
+        <select id="biuVisualStyle">
+
+          <option value="classroom">
+            Classroom Display
+          </option>
+
+          <option value="clean">
+            Clean Professional
+          </option>
+
+          <option value="primary">
+            Colourful Primary
+          </option>
+
+          <option value="minimal">
+            Simple & Minimal
+          </option>
+
+        </select>
+
+      </label>
+
+    </div>
+
+
+    <div class="section-actions">
+
+      <button
+        type="button"
+        id="generateBiuPrompt"
+        class="secondary"
+      >
+        Generate Bump-It-Up Prompt
+      </button>
+
+      <button
+        type="button"
+        id="copyBiuPrompt"
+        class="secondary"
+        disabled
+      >
+        Copy Prompt
+      </button>
+
+    </div>
+
+
+    <label>
+
+      Generated prompt
+
+      <textarea
+        id="biuPrompt"
+        rows="18"
+        placeholder="Generate the Bump-It-Up Wall prompt, then review or edit it before copying..."
+      ></textarea>
+
+    </label>
+
+
+    <div
+      id="biuPromptMessage"
+      class="suggestion-box"
+    ></div>
+
+  </section>
+
+
+  <!-- ======================================================
+       HOW TO USE
+       ====================================================== -->
+
+  <section class="wall-section">
+
+    <div class="assessment-reminder">
+
+      <strong>
+        Create your visual in ChatGPT
+      </strong>
+
+      <p>
+        Copy the generated prompt and paste it into ChatGPT.
+        Ask ChatGPT to create the visual, then continue refining it
+        by requesting changes to the layout, wording, illustrations,
+        colours or level of detail.
+      </p>
+
+    </div>
+
+  </section>
+
+</section>
