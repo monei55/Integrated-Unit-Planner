@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Integrated Unit Planner</title>
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">Multi-age curriculum planning</div>
+
+      <h1>Integrated Unit Planner</h1>
+
+      <p>
+        Plan backwards from what students need to demonstrate,
+        then map the teaching, practice and support required
+        for students to achieve success.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button class="ghost" id="saveBtn" type="button">
+        Save
+      </button>
+
+      <button class="primary" id="printBtn" type="button">
+        Print / PDF
+      </button>
+    </div>
+  </header>
+
+
+  <main class="layout">
+
+    <!-- =====================================================
+         PLANNER NAVIGATION
+         ===================================================== -->
+
+    <nav class="stepnav" aria-label="Planner sections">
+
+      <button class="step active" data-page="setup">
+        <span>1</span>
+        Unit setup
+      </button>
+
+      <button class="step" data-page="curriculum">
+        <span>2</span>
+        Curriculum
+      </button>
+
+      <button class="step" data-page="integration">
+        <span>3</span>
+        Integration
+      </button>
+
+      <button class="step" data-page="assessment">
+        <span>4</span>
+        Assessment & GTMJ
+      </button>
+
+      <button class="step" data-page="sequence">
+        <span>5</span>
+        Learning sequence
+      </button>
+
+      <button class="step" data-page="daily-review">
+        <span>6</span>
+        Daily review
+      </button>
+
+      <button class="step" data-page="differentiation">
+        <span>7</span>
+        Differentiation
+      </button>
+
+      <button class="step" data-page="learning-wall">
+        <span>8</span>
+        Learning wall / BIU
+      </button>
+
+      <button class="step" data-page="review-print">
+        <span>9</span>
+        Review & print
+      </button>
+
+    </nav>
+
+
+    <!-- =====================================================
+         PAGE CONTENT
+         Individual planner pages load here.
+         ===================================================== -->
+
+    <section class="content">
+
+      <div id="pageContent">
+
+        <section class="panel">
+          <p>Loading planner...</p>
+        </section>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <footer>
+    Integrated Unit Planner
+    <br>
+    Australian Curriculum Version 9 planning support
+  </footer>
+
+
+  <!-- Main application controller -->
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>

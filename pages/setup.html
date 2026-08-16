@@ -1,0 +1,134 @@
+<section class="panel" id="setupPage">
+
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Step 1</div>
+      <h2>Unit setup</h2>
+      <p>
+        Define the class, term and broad curriculum structure before selecting
+        the Achievement Standard aspects for the unit.
+      </p>
+    </div>
+
+    <span class="status-pill" id="setupStatus">
+      Ready
+    </span>
+  </div>
+
+
+  <div class="grid two">
+
+    <label>
+      Unit title
+      <input
+        id="unitTitle"
+        placeholder="e.g. From Farm to Table"
+      >
+    </label>
+
+    <label>
+      Term
+      <select id="term">
+        <option>Term 1</option>
+        <option>Term 2</option>
+        <option>Term 3</option>
+        <option>Term 4</option>
+      </select>
+    </label>
+
+    <label>
+      Duration (weeks)
+      <input
+        id="durationWeeks"
+        type="number"
+        min="1"
+        max="20"
+      >
+    </label>
+
+    <label>
+      Context / big idea
+      <input
+        id="unitContext"
+        placeholder="What connects the learning?"
+      >
+    </label>
+
+  </div>
+
+
+  <h3>Select all year levels in the class</h3>
+
+  <div
+    class="chipset"
+    id="yearLevelChoices"
+  ></div>
+
+
+  <div class="school-plan-card">
+
+    <div class="school-plan-head">
+
+      <div>
+        <div class="eyebrow">
+          Whole-school plan
+        </div>
+
+        <h3>
+          Suggested curriculum package
+        </h3>
+
+        <p class="helper">
+          Based on the selected term and year levels.
+          These are editable starting points only.
+        </p>
+      </div>
+
+      <button
+        class="suggest"
+        id="applySuggestedAreas"
+        type="button"
+      >
+        Apply suggested learning areas
+      </button>
+
+    </div>
+
+    <div
+      id="schoolPlanSuggestions"
+      class="school-plan-grid"
+    ></div>
+
+  </div>
+
+
+  <h3>Select learning areas</h3>
+
+  <div
+    class="chipset"
+    id="learningAreaChoices"
+  ></div>
+
+
+  <h3>Weekly teaching allocation</h3>
+
+  <p class="helper">
+    These are editable defaults. English begins at 5 × 60 minutes.
+    HASS and Science begin at 1 × 80-minute dedicated session,
+    with additional content able to be integrated through English.
+  </p>
+
+  <div
+    id="teachingAllocationGrid"
+    class="allocation-grid"
+  ></div>
+
+
+  <div class="notice">
+    <strong>Multi-age planning:</strong>
+    Select every year level in the class. Curriculum and assessment
+    expectations will remain year-level specific even where teaching
+    experiences are shared.
+  </div>
+
+</section>
