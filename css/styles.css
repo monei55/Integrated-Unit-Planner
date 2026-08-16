@@ -811,3 +811,45 @@
   }
 
 }
+.readiness-year{
+  margin-bottom:18px;
+}
+
+.readiness-year-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:8px;
+}
+
+.readiness-year-head h4{
+  margin:0;
+  color:var(--navy);
+}
+
+.readiness-year-head span{
+  font-size:11px;
+  color:var(--muted);
+}
+
+.readiness-card-head p{
+  margin:5px 0 0;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.readiness-subjects{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  padding:10px 14px 0;
+}
+
+.readiness-subjects span{
+  padding:4px 8px;
+  border-radius:999px;
+  background:#edf7f0;
+  font-size:10px;
+  font-weight:700;
+}

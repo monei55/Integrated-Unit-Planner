@@ -28,8 +28,17 @@ export function initSequencePage() {
       suggestBackwardPlanning
     );
 
-}
+document
+  .getElementById(
+    "buildReadinessCheck"
+  )
+  ?.addEventListener(
+    "click",
+    buildAssessmentReadiness
+  );
 
+renderSavedReadiness();
+}
 
 // ============================================================
 // LOAD / SAVE
@@ -1238,7 +1247,638 @@ function buildAssessmentPracticeActions(
   );
 
 }
+// ============================================================
+// ASSESSMENT READINESS
+// ============================================================
 
+function buildAssessmentReadiness() {
+
+  const years =
+    unitPlan.setup.yearLevels || [];
+
+
+  const readiness = {};
+
+
+  years.forEach(
+    (yearLevel) => {
+
+      const assessment =
+        getAssessment(
+          yearLevel
+        );
+
+
+      if (
+        !assessment ||
+        !assessment.components?.length
+      ) {
+        return;
+      }
+
+
+      const yearRows =
+        getSelectedCurriculumRows()
+          .filter(
+            (row) =>
+              gradesForYear(
+                yearLevel
+              ).includes(
+                row.grade
+              )
+          );
+
+
+      const components =
+        assessment.components
+          .filter(
+            (component) =>
+              component
+                .selectedStandardCodes
+                ?.length
+          );
+
+
+      if (!components.length) {
+        return;
+      }
+
+
+      readiness[yearLevel] =
+        components.map(
+          (component, index) => {
+
+            const rows =
+              yearRows.filter(
+                (row) =>
+                  component
+                    .selectedStandardCodes
+                    .includes(
+                      row.code
+                    )
+              );
+
+
+            const verbs =
+              unique(
+                rows.flatMap(
+                  (row) =>
+                    findCognitiveVerbs(
+                      row.text
+                    )
+                )
+              );
+
+
+            const existing =
+              unitPlan.sequence
+                .readinessChecks
+                ?.[yearLevel]
+                ?.find(
+                  (item) =>
+                    item.componentId ===
+                    component.id
+                );
+
+
+            return {
+
+              componentId:
+                component.id,
+
+              number:
+                index + 1,
+
+              question:
+                component.questionText ||
+                `Assessment component ${index + 1}`,
+
+              evidenceFormat:
+                component.evidenceFormat || "",
+
+              verbs,
+
+              subjects:
+                unique(
+                  rows.map(
+                    (row) =>
+                      row.subject
+                  )
+                ),
+
+              checks:
+                existing?.checks ||
+                buildReadinessItems(
+                  rows,
+                  verbs,
+                  component.evidenceFormat
+                )
+
+            };
+
+          }
+        );
+
+    }
+  );
+
+
+  updateUnitPlan(
+    "sequence.readinessChecks",
+    readiness
+  );
+
+
+  renderSavedReadiness();
+
+}
+
+
+// ============================================================
+// BUILD READINESS ITEMS
+// ============================================================
+
+function buildReadinessItems(
+  rows,
+  verbs,
+  evidenceFormat
+) {
+
+  const items = [];
+
+
+  items.push({
+    id:
+      crypto.randomUUID(),
+    label:
+      "Required background knowledge and content have been explicitly taught.",
+    checked:
+      false
+  });
+
+
+  if (
+    rows.some(
+      (row) =>
+        /vocab|terminolog|language|technical|topic-specific/i
+          .test(
+            row.text || ""
+          )
+    )
+  ) {
+
+    items.push({
+      id:
+        crypto.randomUUID(),
+      label:
+        "Relevant Tier 2, Tier 3 and subject-specific vocabulary has been introduced and revisited.",
+      checked:
+        false
+    });
+
+  } else {
+
+    items.push({
+      id:
+        crypto.randomUUID(),
+      label:
+        "Vocabulary students need to understand the task and content has been explicitly taught.",
+      checked:
+        false
+    });
+
+  }
+
+
+  if (verbs.length) {
+
+    items.push({
+      id:
+        crypto.randomUUID(),
+      label:
+        `The cognitive demand has been explicitly modelled: ${joinNaturalList(
+          verbs.map(
+            (verb) =>
+              verb.toUpperCase()
+          )
+        )}.`,
+      checked:
+        false
+    });
+
+
+    items.push({
+      id:
+        crypto.randomUUID(),
+      label:
+        `Students have completed guided practice in ${joinNaturalList(
+          buildAssessmentPracticeActions(
+            verbs
+          )
+        )}.`,
+      checked:
+        false
+    });
+
+  }
+
+
+  if (
+    evidenceFormat &&
+    evidenceFormat !== "__own"
+  ) {
+
+    items.push({
+      id:
+        crypto.randomUUID(),
+      label:
+        `Students have practised the assessment response format before summative use: ${evidenceFormat}.`,
+      checked:
+        false
+    });
+
+  }
+
+
+  items.push({
+    id:
+      crypto.randomUUID(),
+    label:
+      "Students have had an independent practice opportunity before completing this component for summative evidence.",
+    checked:
+      false
+  });
+
+
+  items.push({
+    id:
+      crypto.randomUUID(),
+    label:
+      "Any required scaffolds or adjustments support access without supplying the assessed knowledge or thinking.",
+    checked:
+      false
+  });
+
+
+  return items;
+
+}
+
+
+// ============================================================
+// RENDER READINESS
+// ============================================================
+
+function renderSavedReadiness() {
+
+  const container =
+    document.getElementById(
+      "assessmentReadiness"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  const readiness =
+    unitPlan.sequence
+      .readinessChecks || {};
+
+
+  const years =
+    Object.keys(
+      readiness
+    )
+      .filter(
+        (year) =>
+          readiness[year]
+            ?.length
+      );
+
+
+  if (!years.length) {
+
+    container.innerHTML = `
+
+      <div class="empty">
+
+        Build the year-level assessment
+        in Step 4, then use
+        <strong>
+          Build readiness check
+        </strong>.
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  container.innerHTML =
+    years
+      .map(
+        (yearLevel) => `
+
+          <section class="readiness-year">
+
+            <div class="readiness-year-head">
+
+              <h4>
+                ${escapeHtml(
+                  yearLevel
+                )}
+              </h4>
+
+              <span>
+                ${readiness[
+                  yearLevel
+                ].length}
+                assessment component${
+                  readiness[
+                    yearLevel
+                  ].length === 1
+                    ? ""
+                    : "s"
+                }
+              </span>
+
+            </div>
+
+
+            <div class="assessment-readiness">
+
+              ${
+                readiness[
+                  yearLevel
+                ]
+                  .map(
+                    (component) =>
+                      readinessCardHtml(
+                        yearLevel,
+                        component
+                      )
+                  )
+                  .join("")
+              }
+
+            </div>
+
+          </section>
+
+        `
+      )
+      .join("");
+
+
+  bindReadinessEvents();
+
+}
+
+
+// ============================================================
+// READINESS CARD
+// ============================================================
+
+function readinessCardHtml(
+  yearLevel,
+  component
+) {
+
+  return `
+
+    <article
+      class="readiness-card"
+      data-year="${escapeAttribute(
+        yearLevel
+      )}"
+      data-component="${escapeAttribute(
+        component.componentId
+      )}"
+    >
+
+      <div class="readiness-card-head">
+
+        <div>
+
+          <strong>
+            Assessment component
+            ${component.number}
+          </strong>
+
+          <p>
+            ${escapeHtml(
+              component.question
+            )}
+          </p>
+
+        </div>
+
+
+        <span class="readiness-demand">
+
+          ${
+            component.verbs
+              ?.length
+              ? component.verbs
+                  .map(
+                    (verb) =>
+                      escapeHtml(
+                        verb.toUpperCase()
+                      )
+                  )
+                  .join(" + ")
+              : "EVIDENCE"
+          }
+
+        </span>
+
+      </div>
+
+
+      ${
+        component.subjects
+          ?.length
+          ? `
+
+            <div class="readiness-subjects">
+
+              ${
+                component.subjects
+                  .map(
+                    (subject) => `
+                      <span>
+                        ${escapeHtml(
+                          subject
+                        )}
+                      </span>
+                    `
+                  )
+                  .join("")
+              }
+
+            </div>
+
+          `
+          : ""
+      }
+
+
+      <div class="readiness-checks">
+
+        ${
+          component.checks
+            .map(
+              (check) => `
+
+                <label class="readiness-check">
+
+                  <input
+                    type="checkbox"
+                    data-check="${escapeAttribute(
+                      check.id
+                    )}"
+                    ${
+                      check.checked
+                        ? "checked"
+                        : ""
+                    }
+                  >
+
+                  <span>
+                    ${escapeHtml(
+                      check.label
+                    )}
+                  </span>
+
+                </label>
+
+              `
+            )
+            .join("")
+        }
+
+      </div>
+
+    </article>
+
+  `;
+
+}
+
+
+// ============================================================
+// READINESS EVENTS
+// ============================================================
+
+function bindReadinessEvents() {
+
+  document
+    .querySelectorAll(
+      ".readiness-card"
+    )
+    .forEach(
+      (card) => {
+
+        const yearLevel =
+          card.dataset.year;
+
+
+        const componentId =
+          card.dataset.component;
+
+
+        card
+          .querySelectorAll(
+            "input[data-check]"
+          )
+          .forEach(
+            (checkbox) => {
+
+              checkbox.addEventListener(
+                "change",
+                () => {
+
+                  updateReadinessCheck(
+                    yearLevel,
+                    componentId,
+                    checkbox
+                      .dataset
+                      .check,
+                    checkbox.checked
+                  );
+
+                }
+              );
+
+            }
+          );
+
+      }
+    );
+
+}
+
+
+function updateReadinessCheck(
+  yearLevel,
+  componentId,
+  checkId,
+  checked
+) {
+
+  const readiness =
+    structuredClone(
+      unitPlan.sequence
+        .readinessChecks ||
+      {}
+    );
+
+
+  const component =
+    readiness[
+      yearLevel
+    ]
+      ?.find(
+        (item) =>
+          item.componentId ===
+          componentId
+      );
+
+
+  if (!component) {
+    return;
+  }
+
+
+  const check =
+    component.checks
+      .find(
+        (item) =>
+          item.id ===
+          checkId
+      );
+
+
+  if (!check) {
+    return;
+  }
+
+
+  check.checked =
+    checked;
+
+
+  updateUnitPlan(
+    "sequence.readinessChecks",
+    readiness
+  );
+
+}
 
 // ============================================================
 // ASSESSMENT INFORMATION
@@ -1625,5 +2265,49 @@ function joinNaturalList(
   return `${cleaned
     .slice(0, -1)
     .join(", ")}, and ${cleaned.at(-1)}`;
+
+}
+// ============================================================
+// HTML SAFETY HELPERS
+// ============================================================
+
+function escapeHtml(
+  value
+) {
+
+  return String(
+    value ?? ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+
+}
+
+
+function escapeAttribute(
+  value
+) {
+
+  return escapeHtml(
+    value
+  );
 
 }
