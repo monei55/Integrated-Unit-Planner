@@ -967,3 +967,42 @@
   }
 
 }
+/* ==========================================================
+   DAILY REVIEW ACTION BUTTON
+   ========================================================== */
+
+#reviewSuggest {
+  appearance: none;
+  border: 1px solid #9dbbd8;
+  background: #f7fbff;
+  color: #123f70;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+#reviewSuggest:hover {
+  background: #edf5fc;
+  border-color: #6f9fc8;
+}
+
+#reviewSuggest:active {
+  transform: translateY(1px);
+}
+
+#reviewSuggest:focus-visible {
+  outline: 3px solid rgba(41, 105, 164, 0.22);
+  outline-offset: 2px;
+}
+
+.section-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
