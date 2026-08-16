@@ -25,3 +25,41 @@
 .gtmj-aspect-cell{padding:10px;text-align:left;background:#fbfcfd;font-weight:400}
 .gtmj-aspect-cell span{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:5px}
 .gtmj-aspect-cell p{margin:0;font-size:12px;line-height:1.45;color:#33485e}
+.curriculum-summary{
+  margin:18px 0;
+}
+
+.curriculum-summary-card{
+  display:grid;
+  grid-template-columns:
+    repeat(3,minmax(0,1fr));
+  gap:10px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#f8fafc;
+}
+
+.curriculum-summary-card>div{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.curriculum-summary-card strong{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:var(--navy);
+}
+
+.curriculum-summary-card span{
+  font-size:13px;
+  line-height:1.4;
+}
+
+@media(max-width:800px){
+  .curriculum-summary-card{
+    grid-template-columns:1fr;
+  }
+}
