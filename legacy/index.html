@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Integrated Unit Planner — V9 Curriculum</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">Multi-age curriculum planning</div>
+      <h1>Integrated Unit Planner</h1>
+      <p>Build curriculum-aligned integrated units, plan daily retrieval, identify adjustments, and prepare learning wall and bump-it-up content.</p>
+    </div>
+    <div class="header-actions">
+      <button class="ghost" id="saveBtn">Save in browser</button>
+      <button class="primary" id="printBtn">Print / PDF</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <nav class="stepnav" aria-label="Planner sections">
+      <button class="step active" data-target="setup"><span>1</span>Unit setup</button>
+      <button class="step" data-target="curriculum"><span>2</span>Curriculum</button>
+      <button class="step" data-target="integration"><span>3</span>Integration</button>
+      <button class="step" data-target="assessment"><span>4</span>Assessment & GTMJ</button>
+      <button class="step" data-target="sequence"><span>5</span>Learning sequence</button>
+      <button class="step" data-target="daily"><span>6</span>Daily review</button>
+      <button class="step" data-target="differentiate"><span>7</span>Differentiation</button>
+      <button class="step" data-target="wall"><span>8</span>Learning wall / BIU</button>
+      <button class="step" data-target="review"><span>9</span>Review & print</button>
+    </nav>
+
+    <section class="content">
+      <section class="panel" id="setup">
+        <div class="section-head"><div><div class="eyebrow">Step 1</div><h2>Unit setup</h2></div><span class="status-pill" id="dataStatus"></span></div>
+        <div class="grid two">
+          <label>Unit title<input id="unitTitle" placeholder="e.g. From Farm to Table"></label>
+          <label>Term<select id="term"><option>Term 1</option><option>Term 2</option><option>Term 3</option><option>Term 4</option></select></label>
+          <label>Duration (weeks)<input id="weeks" type="number" min="1" max="20" value="8"></label>
+          <label>Context / big idea<input id="context" placeholder="What connects the learning?"></label>
+        </div>
+        <h3>Select all year levels in the class</h3>
+        <div class="chipset" id="yearChoices"></div>
+        <div class="school-plan-card">
+          <div class="school-plan-head"><div><div class="eyebrow">Whole-school plan</div><h3>Suggested curriculum package</h3><p class="helper">Based on the selected term and year levels. These are editable starting points — teachers retain the final curriculum decisions.</p></div><button class="suggest" id="applySchoolPlan" type="button">Apply suggested learning areas</button></div>
+          <div id="schoolPlanSuggestions" class="school-plan-grid"></div>
+        </div>
+        <h3>Select learning areas</h3>
+        <div class="chipset" id="subjectChoices"></div>
+        <h3>Weekly teaching allocation</h3>
+        <p class="helper">Set the dedicated lesson allocation. English defaults to 5 × 60 minutes. HASS and Science default to 1 × 80-minute dedicated session, with additional curriculum content integrated through English.</p>
+        <div id="allocationGrid" class="allocation-grid"></div>
+        <div class="notice"><strong>Curriculum source:</strong> All learning areas are available for integrated unit setup. English, Mathematics, Science, HASS and HPE currently contain verified Australian Curriculum V9.0 data; Technologies and The Arts are being added from the same official source. The teacher-facing curriculum selection uses Achievement Standard aspects only. Related V9 content descriptions remain optional reference material: teachers can expand them beneath an aspect or open them from a lesson card without selecting them for the unit.</div><div class="notice"><strong>Multi-age design:</strong> the next screen displays curriculum separately for every selected year level and learning area, while still allowing shared teaching opportunities to be identified.</div>
+      </section>
+
+      <section class="panel" id="curriculum">
+        <div class="section-head"><div><div class="eyebrow">Step 2</div><h2>Curriculum selection</h2><p>Select the individual aspects of the Achievement Standard that this unit will explicitly teach and/or assess. Aspects are grouped into teacher-friendly curriculum areas so multi-age progression is easier to see. Select as many aspects as needed for each learning area and year level or band. Use <strong>View related V9 content descriptions</strong> only when you want extra guidance about content that may need explicit teaching.</p></div><button class="suggest" id="suggestLinks">Suggest cross-curricular links</button></div>
+        <div id="curriculumCards" class="stack"></div>
+      </section>
+
+      <section class="panel" id="integration">
+        <div class="section-head"><div><div class="eyebrow">Step 3</div><h2>Integration connections</h2></div><button class="suggest" id="integrationSuggest">Suggest possibilities</button></div>
+        <div class="grid two">
+          <label>Shared concept / big idea<textarea id="bigIdea" rows="4" placeholder="What meaningful idea connects the selected learning areas?"></textarea></label>
+          <label>Authentic context or problem<textarea id="authentic" rows="4" placeholder="What will students investigate, solve, create or communicate?"></textarea></label>
+          <label>Shared key terminology<textarea id="terminology" rows="5" placeholder="Key terminology across the unit"></textarea></label>
+          <label>Integration notes<textarea id="integrationNotes" rows="5" placeholder="Where can learning be genuinely integrated? Where should subjects remain discrete?"></textarea></label>
+        </div>
+        <div class="suggestion-box" id="integrationSuggestions"></div>
+      </section>
+
+      <section class="panel" id="assessment">
+        <div class="section-head"><div><div class="eyebrow">Step 4</div><h2>Assessment & GTMJ</h2><p>Turn the selected Achievement Standard aspects into a focused assessment plan. Build only the evidence needed, then describe the discernible differences for this task.</p></div><div class="sequence-actions"><button class="suggest" id="assessmentSuggest">Suggest assessment structure</button><button class="suggest" id="buildGtmj">Build / refresh GTMJ</button></div></div>
+        <div id="cognitiveDemand" class="tag-row"></div>
+        <div class="assessment-principle"><strong>Alignment check</strong><span>Selected Achievement Standard → evidence required → task conditions → task-specific A–E descriptors</span></div>
+        <div id="assessmentYearBuilder" class="assessment-year-builder">
+          <div class="year-builder-head">
+            <div>
+              <div class="eyebrow">Multi-age assessment</div>
+              <h3>Which year level would you like to create first?</h3>
+              <p>Choose one year level before assessment questions are created. Each assessment uses only the Achievement Standard aspects applicable to that year level.</p>
+            </div>
+            <label class="assessment-year-select-label">Assessment year level
+              <select id="assessmentYearSelect">
+                <option value="">Choose year level…</option>
+              </select>
+            </label>
+          </div>
+          <div id="assessmentYearStatus" class="assessment-year-status">Choose the year level you want to focus on first.</div>
+        </div>
+        <h3>1. Cognitive demand & evidence options</h3>
+        <p class="helper">The planner identifies the cognitive verb in each selected aspect and suggests efficient ways students could demonstrate it. These are prompts for teacher judgement, not fixed assessment rules.</p>
+        <div id="assessmentAlignment" class="assessment-alignment"></div>
+        <h3>2. Integrated assessment task directions</h3>
+        <div class="assessment-actions"><button class="suggest" id="taskIdeas">Generate task directions</button></div>
+        <div id="taskDirections" class="task-directions"></div>
+        <div class="grid two topgap">
+          <label>Assessment title<input id="assessmentTitle" placeholder="e.g. Explain how living things survive in their environment"></label>
+          <label>Assessment technique<select id="assessmentTechnique"><option>Project</option><option>Presentation</option><option>Extended response</option><option>Short response</option><option>Investigation</option><option>Collection of work</option><option>Observed demonstration</option><option>Performance</option><option>Other</option></select></label>
+          <label>Purpose<textarea id="assessmentPurpose" rows="3" placeholder="What is the purpose of this assessment?"></textarea></label>
+          <label>Context / stimulus<textarea id="assessmentContext" rows="3" placeholder="What authentic context, stimulus or problem will frame the task?"></textarea></label>
+          <label>Student task / evidence<textarea id="assessmentTask" rows="5" placeholder="What will students do, say, make or demonstrate?"></textarea></label>
+          <label>Conditions<textarea id="assessmentConditions" rows="5" placeholder="Mode, individual/group, time, access to resources, length, scaffolding conditions..."></textarea></label>
+        </div>
+        <h3>3. Assessment evidence map</h3>
+        <p class="helper">Build one year level at a time. Only that year level's Achievement Standard aspects are available as primary evidence. Once an aspect is mapped, it is removed from later primary lists unless it appears as a genuine integration opportunity or you deliberately choose to show already-used aspects.</p>
+        <div class="assessment-actions"><button class="suggest" id="addEvidenceComponent">+ Add task component / question</button><button class="suggest" id="analyseEvidenceMap">Analyse evidence map</button></div>
+        <div id="evidenceMap" class="evidence-map"></div>
+        <div class="assessment-actions evidence-map-bottom"><button class="primary" id="buildDraftAssessment">Build draft assessment</button><span class="helper">Build the draft once you are happy with the mapped questions / task components.</span></div>
+        <h3>4. Draft assessment task</h3>
+        <p class="helper">Built from the evidence formats and Achievement Standard aspects you have selected. Edit, reorder or rewrite anything — this is a structured starting point, not a finished assessment.</p>
+        <div id="draftAssessment" class="draft-assessment"><div class="empty">Map your evidence above, then select <strong>Build draft assessment</strong>.</div></div>
+        <div class="assessment-actions"><button class="suggest" id="accessibilityCheck">Check assessment accessibility</button><button class="suggest" id="evidenceCheck">Check evidence coverage</button></div>
+        <div class="suggestion-box" id="assessmentSuggestions"></div>
+        <h3>5. Task-specific GTMJ / marking guide</h3>
+        <p class="helper">The C-level starting point is the selected Achievement Standard. A–E suggestions are editable prompts for teacher judgement, not replacements for QCAA standard elaborations.</p>
+        <div id="gtmjBuilder"></div>
+        <label class="topgap">Teacher notes about discernible differences<textarea id="gtmjNotes" rows="4" placeholder="Record important decisions for moderation, exemplars or evidence that matters most."></textarea></label>
+        <div class="quality-check" id="assessmentQuality"></div>
+      </section>
+
+      <section class="panel" id="sequence">
+        <div class="section-head"><div><div class="eyebrow">Step 5</div><h2>Integrated weekly learning sequence</h2><p>Each week contains the actual subject lessons, a linked fluency passage plan, Daily Review focus and Learning Wall/Bump-It-Up updates. Suggestions are editable and movable.</p></div><div class="sequence-actions"><button class="suggest" id="suggestSequence">Suggest lesson sequence</button><button class="suggest" id="buildWeeks">Build / refresh weeks</button></div></div>
+        <div class="notice"><strong>Integration principle:</strong> selected subjects do not need to appear in every lesson. HASS/Science knowledge can be deliberately developed through English reading, vocabulary, writing and fluency while retaining the dedicated disciplinary lesson.</div>
+        <div class="suggestion-box" id="sequenceSuggestions"></div><div id="weeksContainer"></div>
+      </section>
+
+      <section class="panel" id="daily">
+        <div class="section-head"><div><div class="eyebrow">Step 6</div><h2>Five-minute daily review</h2><p>Plan retrieval and quick application of content that has already been explicitly taught.</p></div><button class="suggest" id="reviewSuggest">Suggest review bank</button></div>
+        <div class="review-principle">
+          <strong>5-minute structure</strong><span>Retrieve → recognise → apply → correct / explain</span>
+        </div>
+        <div class="grid two">
+          <label>Vocabulary / terminology<textarea id="reviewVocab" rows="4"></textarea></label>
+          <label>Previously taught knowledge<textarea id="reviewKnowledge" rows="4"></textarea></label>
+          <label>Fluency / automaticity<textarea id="reviewFluency" rows="4"></textarea></label>
+          <label>Quick application<textarea id="reviewApplication" rows="4"></textarea></label>
+          <label>Common misconceptions to revisit<textarea id="reviewMisconceptions" rows="4"></textarea></label>
+          <label>Sample retrieval questions<textarea id="reviewQuestions" rows="4"></textarea></label>
+        </div>
+        <div class="suggestion-box" id="reviewSuggestions"></div>
+      </section>
+
+      <section class="panel" id="differentiate">
+        <div class="section-head"><div><div class="eyebrow">Step 7</div><h2>Differentiation & adjustments</h2></div><button class="suggest" id="diffSuggest">Suggest strategies</button></div>
+        <h3>Identify required adjustment areas</h3>
+        <div class="chipset" id="needChoices"></div>
+        <div class="grid two topgap">
+          <label>Access / representation<textarea id="diffAccess" rows="5"></textarea></label>
+          <label>Scaffolding / guided support<textarea id="diffScaffold" rows="5"></textarea></label>
+          <label>Response / expression<textarea id="diffResponse" rows="5"></textarea></label>
+          <label>Extension / increased complexity<textarea id="diffExtension" rows="5"></textarea></label>
+        </div>
+        <div class="suggestion-box" id="diffSuggestions"></div>
+      </section>
+
+      <section class="panel" id="wall">
+        <div class="section-head"><div><div class="eyebrow">Step 8</div><h2>Learning wall & Bump-It-Up planning</h2></div><button class="suggest" id="wallSuggest">Suggest wall content</button></div>
+        <div class="wall-grid">
+          <div class="wall-card"><h3>Learning wall</h3><label>Learning intentions<textarea id="wallLI" rows="4"></textarea></label><label>Success criteria<textarea id="wallSC" rows="4"></textarea></label><label>Key terminology<textarea id="wallTerms" rows="4"></textarea></label><label>Anchor charts / processes<textarea id="wallAnchors" rows="4"></textarea></label></div>
+          <div class="wall-card"><h3>Bump-It-Up wall</h3><label>Assessment focus / cognitive verbs<textarea id="biuFocus" rows="4"></textarea></label><label>Exemplars required<textarea id="biuExemplars" rows="4"></textarea></label><label>Discernible differences to make visible<textarea id="biuDifferences" rows="4"></textarea></label><label>Feedback / next-step prompts<textarea id="biuPrompts" rows="4"></textarea></label></div>
+        </div>
+        <div class="suggestion-box" id="wallSuggestions"></div>
+      </section>
+
+      <section class="panel" id="review">
+        <div class="section-head"><div><div class="eyebrow">Step 9</div><h2>Review & print</h2><p>This preview becomes the printable unit overview. Browser printing can save it as a PDF.</p></div><button class="primary" id="refreshPreview">Refresh preview</button></div>
+        <div id="printPreview" class="print-sheet"></div>
+      </section>
+    </section>
+  </main>
+
+
+  <div class="reference-modal" id="referenceModal" aria-hidden="true">
+    <div class="reference-dialog" role="dialog" aria-modal="true" aria-labelledby="referenceTitle">
+      <div class="reference-head"><div><div class="eyebrow">Optional V9 reference</div><h2 id="referenceTitle">Curriculum reference</h2></div><button type="button" class="modal-close" id="referenceClose">Close</button></div>
+      <p class="helper">Achievement Standard aspects remain the unit selections. These official content descriptions are shown only to help identify knowledge, understanding and skills that may need to be explicitly taught.</p>
+      <div id="referenceBody"></div>
+    </div>
+  </div>
+  <footer>Prototype v3.4.6 • Verified curriculum wording sourced from official Australian Curriculum Version 9.0 documents • Saved units remain in this browser only.</footer>
+  <script src="curriculum-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
