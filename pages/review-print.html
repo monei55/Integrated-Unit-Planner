@@ -1,0 +1,585 @@
+<section class="panel" id="review">
+
+  <style>
+
+    /* =========================================================
+       STEP 9 — REVIEW / PRINT PAGE
+       ========================================================= */
+
+    #review .review-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      margin-bottom: 22px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    #review .review-toolbar-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    #review .template-readiness {
+      margin-bottom: 22px;
+    }
+
+    #review .readiness-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    #review .readiness-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    #review .readiness-item.ready {
+      background: #f4faf7;
+    }
+
+    #review .readiness-item.check {
+      background: #fff9e9;
+    }
+
+    #review .readiness-icon {
+      display: grid;
+      place-items: center;
+      flex: 0 0 27px;
+      width: 27px;
+      height: 27px;
+      border-radius: 50%;
+      background: #eef3f8;
+      color: var(--navy);
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    #review .readiness-item strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--navy);
+    }
+
+    #review .readiness-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+
+    /* =========================================================
+       OFFICIAL-TEMPLATE STYLE PREVIEW
+       ========================================================= */
+
+    #printPreview {
+      overflow-x: auto;
+      border: 1px solid #cbd6e1;
+      border-radius: 10px;
+      background: #edf1f5;
+      padding: 22px;
+    }
+
+    .unit-template {
+      width: 100%;
+      min-width: 980px;
+      margin: 0 auto;
+      padding: 24px;
+      background: #fff;
+      color: #172536;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .unit-template-header {
+      display: grid;
+      grid-template-columns: 1.4fr 0.6fr 0.6fr;
+      border: 1px solid #7d8b99;
+      border-bottom: 0;
+    }
+
+    .unit-template-header > div {
+      padding: 12px 14px;
+      border-right: 1px solid #7d8b99;
+    }
+
+    .unit-template-header > div:last-child {
+      border-right: 0;
+    }
+
+    .unit-template-header .subject-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #173d68;
+    }
+
+    .unit-template-header span {
+      display: block;
+      margin-bottom: 3px;
+      color: #596a7c;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .unit-title-strip {
+      padding: 12px 14px;
+      border: 1px solid #7d8b99;
+      background: #edf3f8;
+    }
+
+    .unit-title-strip strong {
+      margin-right: 8px;
+      color: #173d68;
+    }
+
+    .template-guidance {
+      padding: 13px 14px;
+      border: 1px solid #7d8b99;
+      border-top: 0;
+      color: #47596a;
+      font-size: 11px;
+    }
+
+    .template-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .template-table th,
+    .template-table td {
+      border: 1px solid #7d8b99;
+      padding: 9px 10px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    .template-table th {
+      background: #dce8f2;
+      color: #173d68;
+      font-weight: 800;
+    }
+
+    .template-section-title {
+      padding: 9px 10px;
+      border: 1px solid #7d8b99;
+      border-bottom: 0;
+      background: #234f79;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .template-subheading {
+      margin: 0 0 6px;
+      color: #173d68;
+      font-weight: 800;
+    }
+
+    .template-list {
+      margin: 5px 0 0;
+      padding-left: 18px;
+    }
+
+    .template-list li {
+      margin-bottom: 4px;
+    }
+
+    .template-paragraph {
+      margin: 0 0 7px;
+    }
+
+    .template-muted {
+      color: #68798b;
+    }
+
+    .template-empty {
+      color: #8a5b14;
+      font-style: italic;
+    }
+
+
+    /* =========================================================
+       OVERVIEW — WEEKS
+       ========================================================= */
+
+    .week-overview-scroll {
+      overflow-x: auto;
+    }
+
+    .week-overview-table {
+      min-width: 900px;
+    }
+
+    .week-overview-table th {
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .week-overview-table td {
+      min-width: 130px;
+      font-size: 11px;
+    }
+
+    .week-overview-focus {
+      font-weight: 800;
+      color: #173d68;
+    }
+
+
+    /* =========================================================
+       DETAILED TEACHING / LEARNING TABLE
+       ========================================================= */
+
+    .teaching-detail-block {
+      margin-top: 16px;
+      break-inside: avoid;
+    }
+
+    .teaching-detail-table col.focus-col {
+      width: 15%;
+    }
+
+    .teaching-detail-table col.curriculum-col {
+      width: 24%;
+    }
+
+    .teaching-detail-table col.sequence-col {
+      width: 45%;
+    }
+
+    .teaching-detail-table col.resources-col {
+      width: 16%;
+    }
+
+    .teaching-detail-table h4 {
+      margin: 0 0 6px;
+      color: #173d68;
+      font-size: 12px;
+    }
+
+    .lesson-print-item {
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #d8e0e7;
+    }
+
+    .lesson-print-item:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .lesson-print-item strong {
+      color: #173d68;
+    }
+
+    .lesson-print-item p {
+      margin: 3px 0;
+    }
+
+    .weekly-extra {
+      margin-top: 8px;
+      padding: 7px 8px;
+      border-left: 3px solid #9bb8d0;
+      background: #f5f8fb;
+    }
+
+
+    /* =========================================================
+       ASSESSMENT / MARKING GUIDE
+       ========================================================= */
+
+    .assessment-year-block {
+      margin-bottom: 15px;
+    }
+
+    .assessment-year-title {
+      padding: 7px 9px;
+      border: 1px solid #7d8b99;
+      border-bottom: 0;
+      background: #edf3f8;
+      color: #173d68;
+      font-weight: 800;
+    }
+
+    .assessment-component {
+      margin-bottom: 8px;
+    }
+
+    .assessment-component:last-child {
+      margin-bottom: 0;
+    }
+
+    .marking-guide-print {
+      margin-top: 10px;
+    }
+
+    .marking-guide-print-item {
+      padding: 7px 0;
+      border-bottom: 1px solid #d7dfe7;
+    }
+
+    .marking-guide-print-item:last-child {
+      border-bottom: 0;
+    }
+
+
+    /* =========================================================
+       DIFFERENTIATION
+       ========================================================= */
+
+    .adjustment-print-group {
+      margin-bottom: 9px;
+    }
+
+    .adjustment-print-group strong {
+      color: #173d68;
+    }
+
+
+    /* =========================================================
+       PRINT
+       ========================================================= */
+
+    @media print {
+
+      @page {
+        size: A3 landscape;
+        margin: 8mm;
+      }
+
+      body {
+        background: #fff !important;
+      }
+
+      .topbar,
+      .stepnav,
+      footer,
+      #review > .section-head,
+      #review .review-toolbar,
+      #review .template-readiness,
+      #review #reviewMessage {
+        display: none !important;
+      }
+
+      .layout {
+        display: block !important;
+      }
+
+      .content {
+        padding: 0 !important;
+      }
+
+      .panel#review {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+        box-shadow: none !important;
+      }
+
+      #printPreview {
+        overflow: visible !important;
+        padding: 0 !important;
+        border: 0 !important;
+        background: #fff !important;
+      }
+
+      .unit-template {
+        min-width: 0 !important;
+        width: 100% !important;
+        padding: 0 !important;
+        font-size: 9.5px;
+      }
+
+      .template-table th,
+      .template-table td {
+        padding: 5px 6px;
+      }
+
+      .week-overview-scroll {
+        overflow: visible !important;
+      }
+
+      .week-overview-table {
+        min-width: 0 !important;
+      }
+
+      .week-overview-table td {
+        min-width: 0 !important;
+      }
+
+      .teaching-detail-block {
+        page-break-inside: avoid;
+      }
+
+      .template-section-title {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .template-table th,
+      .unit-title-strip,
+      .assessment-year-title {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+    }
+
+
+    @media (max-width: 900px) {
+
+      #review .readiness-summary {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      #review .review-toolbar {
+        flex-direction: column;
+      }
+
+    }
+
+  </style>
+
+
+  <!-- =======================================================
+       PAGE HEADING
+       ======================================================= -->
+
+  <div class="section-head">
+
+    <div>
+
+      <div class="eyebrow">
+        Step 9
+      </div>
+
+      <h2>
+        Review & Print
+      </h2>
+
+      <p class="muted">
+        Review the completed unit and generate the final unit plan
+        using the Unit Planning Template structure.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <!-- =======================================================
+       CONTROLS
+       ======================================================= -->
+
+  <div class="review-toolbar">
+
+    <div>
+
+      <h3>
+        Final Unit Plan
+      </h3>
+
+      <p class="muted">
+        Information from the previous planning steps is pulled
+        together into the final template below.
+      </p>
+
+    </div>
+
+
+    <div class="review-toolbar-actions">
+
+  <button
+    type="button"
+    id="checkUnitReadiness"
+    class="secondary"
+  >
+    Check unit
+  </button>
+
+  <button
+    type="button"
+    id="refreshPreview"
+    class="secondary"
+  >
+    Refresh Unit Plan
+  </button>
+
+  <button
+    type="button"
+    id="exportWord"
+    class="secondary"
+  >
+    Export to Word
+  </button>
+
+  <button
+    type="button"
+    id="printUnitPlan"
+    class="primary"
+  >
+    Print / Save PDF
+  </button>
+
+</div>
+  </div>
+
+
+  <!-- =======================================================
+       READINESS
+       ======================================================= -->
+
+  <section class="template-readiness">
+
+    <h3>
+      Unit Plan Check
+    </h3>
+
+    <p class="muted">
+      Check that the major planning components contain information
+      before exporting the final unit.
+    </p>
+
+
+    <div
+      id="unitReadinessSummary"
+      class="readiness-summary"
+    ></div>
+
+  </section>
+
+
+  <div
+    id="reviewMessage"
+    class="suggestion-box"
+  ></div>
+
+
+  <!-- =======================================================
+       TEMPLATE PREVIEW
+       ======================================================= -->
+
+  <div id="printPreview">
+
+    <div class="empty">
+      Refresh the Unit Plan to build the final template.
+    </div>
+
+  </div>
+
+</section>

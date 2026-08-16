@@ -1045,3 +1045,251 @@
   justify-content: flex-end;
   margin-top: 12px;
 }
+/* ==========================================================
+   STEP 8 — LEARNING WALL / BIU ACTION BUTTONS
+   ========================================================== */
+
+/* Main generate buttons */
+#generateLearningWallPrompt,
+#generateBiuPrompt {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid #17446f;
+  background: #17446f;
+  color: #ffffff;
+  min-height: 38px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+#generateLearningWallPrompt:hover,
+#generateBiuPrompt:hover {
+  background: #12395e;
+  border-color: #12395e;
+}
+
+#generateLearningWallPrompt:active,
+#generateBiuPrompt:active {
+  transform: translateY(1px);
+}
+
+
+/* Copy prompt buttons */
+#copyLearningWallPrompt,
+#copyBiuPrompt {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid #9dbbd8;
+  background: #f7fbff;
+  color: #123f70;
+  min-height: 38px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+#copyLearningWallPrompt:hover:not(:disabled),
+#copyBiuPrompt:hover:not(:disabled) {
+  background: #edf5fc;
+  border-color: #6f9fc8;
+}
+
+
+/* Disabled copy button */
+#copyLearningWallPrompt:disabled,
+#copyBiuPrompt:disabled {
+  background: #f2f4f6;
+  border-color: #d4dbe2;
+  color: #8a97a5;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+
+/* Keep each button pair lined up neatly */
+#learningWall .section-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+
+/* Keyboard focus */
+#generateLearningWallPrompt:focus-visible,
+#generateBiuPrompt:focus-visible,
+#copyLearningWallPrompt:focus-visible,
+#copyBiuPrompt:focus-visible {
+  outline: 3px solid rgba(41, 105, 164, 0.22);
+  outline-offset: 2px;
+}
+/* ==========================================================
+   STEP 9 — REVIEW & PRINT ACTION BUTTONS
+   ========================================================== */
+
+/* Secondary actions */
+#checkUnitReadiness,
+#refreshPreview,
+#exportWord {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid #9dbbd8;
+  background: #f7fbff;
+  color: #123f70;
+  min-height: 38px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+#checkUnitReadiness:hover,
+#refreshPreview:hover,
+#exportWord:hover {
+  background: #edf5fc;
+  border-color: #6f9fc8;
+}
+
+
+/* Primary print action */
+#printUnitPlan {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid #17446f;
+  background: #17446f;
+  color: #ffffff;
+  min-height: 38px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+#printUnitPlan:hover {
+  background: #12395e;
+  border-color: #12395e;
+}
+
+
+/* Keep the whole action group neat */
+#review .review-toolbar-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+
+/* Press effect */
+#checkUnitReadiness:active,
+#refreshPreview:active,
+#exportWord:active,
+#printUnitPlan:active {
+  transform: translateY(1px);
+}
+
+
+/* Keyboard accessibility */
+#checkUnitReadiness:focus-visible,
+#refreshPreview:focus-visible,
+#exportWord:focus-visible,
+#printUnitPlan:focus-visible {
+  outline: 3px solid rgba(41, 105, 164, 0.22);
+  outline-offset: 2px;
+}
+/* ==========================================================
+   STEP 3 — INTEGRATION ACTION BUTTONS
+   ========================================================== */
+
+/* Add integration connection */
+#addIntegrationConnection {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid #9dbbd8;
+  background: #f7fbff;
+  color: #123f70;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+#addIntegrationConnection:hover {
+  background: #edf5fc;
+  border-color: #6f9fc8;
+}
+
+
+/* Remove integration connection */
+.integration-connection button,
+.remove-integration-connection {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid #c9d7e4;
+  background: #ffffff;
+  color: #526b82;
+  min-height: 32px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.integration-connection button:hover,
+.remove-integration-connection:hover {
+  background: #f4f8fb;
+  border-color: #9dbbd8;
+  color: #123f70;
+}
+
+
+/* Keyboard focus */
+#addIntegrationConnection:focus-visible,
+.integration-connection button:focus-visible,
+.remove-integration-connection:focus-visible {
+  outline: 3px solid rgba(41, 105, 164, 0.22);
+  outline-offset: 2px;
+}
