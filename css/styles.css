@@ -474,3 +474,340 @@
   border-radius:8px;
   background:#f6f9fc;
 }
+/* ==========================================================
+   STEP 5 — TEACHING & LEARNING SEQUENCE
+   ========================================================== */
+
+.sequence-section{
+  margin-top:28px;
+  padding-top:22px;
+  border-top:1px solid var(--line);
+}
+
+.sequence-section:first-of-type{
+  margin-top:20px;
+}
+
+.sequence-section-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:20px;
+  margin-bottom:16px;
+}
+
+.sequence-section-head>div:first-child{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+}
+
+.sequence-section-head h3{
+  margin:0 0 4px;
+}
+
+.sequence-section-head p{
+  margin:0;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.45;
+  max-width:760px;
+}
+
+.sequence-number{
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  flex:none;
+  border-radius:50%;
+  background:var(--navy);
+  color:white;
+  font-size:12px;
+  font-weight:800;
+}
+
+
+/* KNOW — UNDERSTAND — DO */
+
+.kud-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+
+.kud-card{
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:15px;
+  background:#fff;
+}
+
+.kud-head{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:12px;
+}
+
+.kud-letter{
+  width:34px;
+  height:34px;
+  flex:none;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  background:#eef5fb;
+  color:var(--navy);
+  font-size:16px;
+  font-weight:900;
+}
+
+.kud-head h4{
+  margin:0 0 3px;
+  color:var(--navy);
+}
+
+.kud-head p{
+  margin:0;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.4;
+}
+
+.kud-card textarea{
+  min-height:180px;
+}
+
+
+/* ASSESSMENT READINESS */
+
+.assessment-readiness{
+  display:grid;
+  gap:12px;
+}
+
+.readiness-card{
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:hidden;
+  background:#fff;
+}
+
+.readiness-card-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 14px;
+  background:#f4f7fa;
+}
+
+.readiness-card-head strong{
+  color:var(--navy);
+}
+
+.readiness-demand{
+  font-size:11px;
+  font-weight:800;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#eef5fb;
+}
+
+.readiness-checks{
+  display:grid;
+  gap:7px;
+  padding:12px 14px;
+}
+
+.readiness-check{
+  display:grid;
+  grid-template-columns:22px 1fr;
+  gap:8px;
+  align-items:start;
+  padding:8px;
+  border-radius:8px;
+  background:#f8fafc;
+}
+
+.readiness-check input{
+  width:auto;
+  margin-top:3px;
+}
+
+
+/* TEACHING PRIORITIES */
+
+.teaching-priorities{
+  display:grid;
+  gap:10px;
+}
+
+.teaching-priority-card{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:10px;
+  align-items:start;
+  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#fff;
+}
+
+.priority-type{
+  padding:4px 8px;
+  border-radius:999px;
+  background:#eef5fb;
+  font-size:10px;
+  font-weight:800;
+  color:var(--navy);
+}
+
+
+/* WEEKLY SEQUENCE */
+
+.weeks-container{
+  display:grid;
+  gap:16px;
+  margin-top:18px;
+}
+
+.sequence-allocation-note{
+  margin-bottom:14px;
+}
+
+.week-shell{
+  border:1px solid var(--line);
+  border-radius:14px;
+  overflow:hidden;
+  background:#fff;
+}
+
+.week-shell-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:12px 15px;
+  background:#edf4fa;
+}
+
+.week-shell-head h3{
+  margin:0;
+}
+
+.lesson-stack{
+  display:grid;
+  gap:9px;
+  padding:12px;
+}
+
+.lesson-card{
+  border:1px solid #d7e0e8;
+  border-radius:10px;
+  padding:11px;
+  background:#fff;
+}
+
+.lesson-head{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:9px;
+}
+
+.lesson-head strong{
+  flex:1;
+}
+
+.lesson-phase{
+  font-size:10px;
+  font-weight:800;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#eef5fb;
+  color:var(--navy);
+}
+
+.lesson-fields{
+  display:grid;
+  grid-template-columns:
+    minmax(0,1fr)
+    minmax(0,1.4fr)
+    minmax(0,1fr);
+  gap:8px;
+}
+
+
+/* WEEKLY SUPPORT */
+
+.weekly-support{
+  display:grid;
+  grid-template-columns:
+    1.2fr
+    1fr
+    1fr;
+  gap:10px;
+  padding:0 12px 12px;
+}
+
+.support-card{
+  border:1px solid #d7e0e8;
+  border-radius:10px;
+  padding:11px;
+  background:#f9fbfd;
+}
+
+.support-card h4{
+  margin:0 0 7px;
+  color:var(--navy);
+}
+
+
+/* COVERAGE CHECK */
+
+.sequence-coverage{
+  display:grid;
+  gap:8px;
+}
+
+.coverage-item{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:9px;
+  border:1px solid var(--line);
+}
+
+.coverage-ok{
+  background:#edf7f0;
+}
+
+.coverage-warning{
+  background:#fff8e8;
+}
+
+
+/* RESPONSIVE */
+
+@media(max-width:1050px){
+
+  .kud-grid{
+    grid-template-columns:1fr;
+  }
+
+  .weekly-support,
+  .lesson-fields{
+    grid-template-columns:1fr;
+  }
+
+}
+
+@media(max-width:800px){
+
+  .sequence-section-head{
+    flex-direction:column;
+  }
+
+}
