@@ -139,3 +139,101 @@
   justify-content:space-between;
   align-items:center;
 }
+.assessment-year-builder{
+  margin:18px 0;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#f8fafc;
+}
+
+.year-builder-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:20px;
+}
+
+.year-builder-head h3{
+  margin:4px 0 6px;
+}
+
+.year-builder-head p{
+  margin:0;
+  max-width:720px;
+}
+
+.year-builder-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:flex-end;
+}
+
+.year-builder-actions{
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+
+.year-choice-note{
+  margin-top:12px;
+  padding:10px 12px;
+  border-radius:9px;
+  background:#fff;
+  font-size:12px;
+}
+
+.assessment-alignment-subject{
+  border:1px solid var(--line);
+  border-radius:11px;
+  overflow:hidden;
+  margin:10px 0;
+}
+
+.assessment-alignment-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  background:#f3f7fa;
+}
+
+.assessment-alignment-head span{
+  font-size:11px;
+}
+
+.assessment-alignment-list{
+  display:grid;
+  gap:1px;
+  background:var(--line);
+}
+
+.assessment-alignment-list>div{
+  padding:10px 12px;
+  background:#fff;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.build-draft-area{
+  margin:18px 0;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#f8fafc;
+}
+
+@media(max-width:800px){
+  .year-builder-head{
+    flex-direction:column;
+  }
+
+  .year-builder-chips{
+    justify-content:flex-start;
+  }
+}

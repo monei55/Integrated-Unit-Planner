@@ -1,0 +1,264 @@
+<section class="panel" id="assessmentPage">
+
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Step 4</div>
+      <h2>Assessment & GTMJ</h2>
+
+      <p>
+        Plan the minimum sufficient evidence students need to demonstrate
+        the selected Achievement Standard aspects.
+      </p>
+    </div>
+  </div>
+
+  <div class="notice">
+    <strong>Assessment principle:</strong>
+    Start with the curriculum demand, identify the cognitive verb, then
+    choose the lightest valid way students could demonstrate that learning.
+    One well-designed component may provide evidence for several aspects.
+  </div>
+
+
+  <!-- ======================================================
+       MULTI-AGE ASSESSMENT YEAR
+       ====================================================== -->
+
+  <div
+    id="assessmentYearBuilder"
+    class="assessment-year-builder"
+  ></div>
+
+
+  <!-- ======================================================
+       ASSESSMENT DETAILS
+       ====================================================== -->
+
+  <div id="assessmentWorkspace" hidden>
+
+    <h3>Assessment overview</h3>
+
+    <div class="grid two">
+
+      <label>
+        Assessment title
+        <input
+          id="assessmentTitle"
+          placeholder="e.g. Investigating Our Local Community"
+        >
+      </label>
+
+      <label>
+        Technique
+        <select id="assessmentTechnique">
+          <option>Project</option>
+          <option>Investigation</option>
+          <option>Collection of work</option>
+          <option>Written response</option>
+          <option>Oral response</option>
+          <option>Performance</option>
+          <option>Practical task</option>
+          <option>Multimodal response</option>
+          <option>Other</option>
+        </select>
+      </label>
+
+      <label>
+        Purpose
+        <textarea
+          id="assessmentPurpose"
+          rows="3"
+          placeholder="What learning will this assessment gather evidence of?"
+        ></textarea>
+      </label>
+
+      <label>
+        Context
+        <textarea
+          id="assessmentContext"
+          rows="3"
+          placeholder="What authentic context or scenario will frame the assessment?"
+        ></textarea>
+      </label>
+
+      <label>
+        Student task / evidence
+        <textarea
+          id="assessmentTask"
+          rows="4"
+          placeholder="This will also be able to populate from the Evidence Map."
+        ></textarea>
+      </label>
+
+      <label>
+        Conditions
+        <textarea
+          id="assessmentConditions"
+          rows="4"
+          placeholder="Time, access to resources, individual/group requirements, response mode..."
+        ></textarea>
+      </label>
+
+    </div>
+
+
+    <!-- ====================================================
+         CURRICULUM ALIGNMENT
+         ==================================================== -->
+
+    <h3>Achievement Standard alignment</h3>
+
+    <p class="helper">
+      Only the selected Achievement Standard aspects applicable to the
+      assessment year level are shown here.
+    </p>
+
+    <div id="assessmentAlignment"></div>
+
+
+    <!-- ====================================================
+         COGNITIVE DEMAND
+         ==================================================== -->
+
+    <h3>Cognitive demand</h3>
+
+    <p class="helper">
+      Use the cognitive verbs to determine what students actually need to do
+      and the simplest valid evidence that could demonstrate the learning.
+    </p>
+
+    <div
+      id="cognitiveDemandCards"
+      class="cognitive-demand-grid"
+    ></div>
+
+
+    <!-- ====================================================
+         EVIDENCE MAP
+         ==================================================== -->
+
+    <div class="section-head topgap">
+      <div>
+        <h3>Assessment Evidence Map</h3>
+
+        <p>
+          Build the assessment component by component. Link each component
+          to the curriculum evidence it genuinely gathers.
+        </p>
+      </div>
+    </div>
+
+    <div id="evidenceMap"></div>
+
+    <button
+      type="button"
+      class="secondary topgap"
+      id="addEvidenceComponent"
+    >
+      + Add question / task component
+    </button>
+
+    <button
+      type="button"
+      class="suggest topgap"
+      id="analyseEvidenceMap"
+    >
+      Check evidence coverage
+    </button>
+
+
+    <!-- Build Draft intentionally remains at the BOTTOM
+         of the Evidence Map -->
+
+    <div class="build-draft-area">
+
+      <button
+        type="button"
+        class="primary"
+        id="buildDraftAssessment"
+      >
+        Build draft assessment
+      </button>
+
+      <p class="helper">
+        Build the draft after mapping the assessment evidence above.
+      </p>
+
+    </div>
+
+
+    <div
+      id="assessmentSuggestions"
+      class="suggestion-box"
+    ></div>
+
+
+    <!-- ====================================================
+         DRAFT
+         ==================================================== -->
+
+    <h3>Draft assessment</h3>
+
+    <div id="draftAssessment">
+
+      <div class="empty">
+        Map this year level's evidence above, then select
+        <strong>Build draft assessment</strong>.
+      </div>
+
+    </div>
+
+
+    <!-- ====================================================
+         GTMJ
+         ==================================================== -->
+
+    <div class="section-head topgap">
+
+      <div>
+        <h3>Guide to Making Judgements</h3>
+
+        <p>
+          Achievement Standard aspects will be grouped into one table for
+          each learning area.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="suggest"
+        id="buildGtmj"
+      >
+        Build GTMJ
+      </button>
+
+    </div>
+
+    <div id="gtmjBuilder"></div>
+
+
+    <label class="topgap">
+      GTMJ notes
+
+      <textarea
+        id="gtmjNotes"
+        rows="3"
+        placeholder="Teacher moderation notes, evidence considerations or local decisions"
+      ></textarea>
+    </label>
+
+
+    <!-- ====================================================
+         QUALITY CHECK
+         ==================================================== -->
+
+    <h3>Assessment quality check</h3>
+
+    <div
+      id="assessmentQuality"
+      class="assessment-quality"
+    ></div>
+
+  </div>
+
+</section>
