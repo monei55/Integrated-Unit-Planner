@@ -28,17 +28,33 @@ export function initSequencePage() {
       suggestBackwardPlanning
     );
 
-document
-  .getElementById(
-    "buildReadinessCheck"
-  )
-  ?.addEventListener(
-    "click",
-    buildAssessmentReadiness
-  );
 
-renderSavedReadiness();
+  document
+    .getElementById(
+      "buildReadinessCheck"
+    )
+    ?.addEventListener(
+      "click",
+      buildAssessmentReadiness
+    );
+
+
+  document
+    .getElementById(
+      "suggestTeachingPriorities"
+    )
+    ?.addEventListener(
+      "click",
+      buildTeachingPriorities
+    );
+
+
+  renderSavedReadiness();
+
+  renderSavedTeachingPriorities();
+
 }
+
 
 // ============================================================
 // LOAD / SAVE
@@ -795,10 +811,6 @@ function buildSubjectDoStatement(
   const actions = [];
 
 
-  // ----------------------------------------------------------
-  // READING / VIEWING / COMPREHENSION
-  // ----------------------------------------------------------
-
   if (
     verbs.includes("read") ||
     verbs.includes("view") ||
@@ -811,10 +823,6 @@ function buildSubjectDoStatement(
 
   }
 
-
-  // ----------------------------------------------------------
-  // FIND / IDENTIFY / SELECT
-  // ----------------------------------------------------------
 
   if (
     verbs.includes("identify") ||
@@ -830,10 +838,6 @@ function buildSubjectDoStatement(
   }
 
 
-  // ----------------------------------------------------------
-  // INTERPRET / ANALYSE / INFER
-  // ----------------------------------------------------------
-
   if (
     verbs.includes("interpret") ||
     verbs.includes("analyse") ||
@@ -846,10 +850,6 @@ function buildSubjectDoStatement(
 
   }
 
-
-  // ----------------------------------------------------------
-  // DESCRIBE / EXPLAIN / COMPARE
-  // ----------------------------------------------------------
 
   if (
     verbs.includes("describe") ||
@@ -864,10 +864,6 @@ function buildSubjectDoStatement(
   }
 
 
-  // ----------------------------------------------------------
-  // ORGANISE / GROUP / SEQUENCE / LINK
-  // ----------------------------------------------------------
-
   if (
     verbs.includes("organise") ||
     verbs.includes("sequence") ||
@@ -881,10 +877,6 @@ function buildSubjectDoStatement(
 
   }
 
-
-  // ----------------------------------------------------------
-  // CREATE / CONSTRUCT / REPRESENT / COMMUNICATE
-  // ----------------------------------------------------------
 
   if (
     verbs.includes("create") ||
@@ -902,10 +894,6 @@ function buildSubjectDoStatement(
   }
 
 
-  // ----------------------------------------------------------
-  // USE / APPLY
-  // ----------------------------------------------------------
-
   if (
     verbs.includes("use") ||
     verbs.includes("apply")
@@ -917,10 +905,6 @@ function buildSubjectDoStatement(
 
   }
 
-
-  // ----------------------------------------------------------
-  // DEVELOP / PLAN / INVESTIGATE / COLLECT
-  // ----------------------------------------------------------
 
   if (
     verbs.includes("develop") ||
@@ -936,10 +920,6 @@ function buildSubjectDoStatement(
   }
 
 
-  // ----------------------------------------------------------
-  // EVALUATE / JUSTIFY / PROPOSE
-  // ----------------------------------------------------------
-
   if (
     verbs.includes("evaluate") ||
     verbs.includes("justify") ||
@@ -953,10 +933,6 @@ function buildSubjectDoStatement(
   }
 
 
-  // ----------------------------------------------------------
-  // DEMONSTRATE / PERFORM
-  // ----------------------------------------------------------
-
   if (
     verbs.includes("demonstrate") ||
     verbs.includes("perform")
@@ -969,10 +945,6 @@ function buildSubjectDoStatement(
   }
 
 
-  // ----------------------------------------------------------
-  // CLASSIFY
-  // ----------------------------------------------------------
-
   if (
     verbs.includes("classify")
   ) {
@@ -983,10 +955,6 @@ function buildSubjectDoStatement(
 
   }
 
-
-  // ----------------------------------------------------------
-  // SUMMARISE
-  // ----------------------------------------------------------
 
   if (
     verbs.includes("summarise")
@@ -1247,6 +1215,8 @@ function buildAssessmentPracticeActions(
   );
 
 }
+
+
 // ============================================================
 // ASSESSMENT READINESS
 // ============================================================
@@ -1880,6 +1850,870 @@ function updateReadinessCheck(
 
 }
 
+
+// ============================================================
+// TEACHING PRIORITIES
+// ============================================================
+
+function buildTeachingPriorities() {
+
+  const rows =
+    getSelectedCurriculumRows();
+
+  const container =
+    document.getElementById(
+      "teachingPriorities"
+    );
+
+  if (!container) {
+    return;
+  }
+
+  if (!rows.length) {
+
+    container.innerHTML = `
+      <div class="empty">
+        Select Achievement Standard aspects
+        in Step 2 before generating teaching
+        priorities.
+      </div>
+    `;
+
+    return;
+  }
+
+  const assessmentComponents =
+    getAssessmentComponentsAcrossYears();
+
+  const priorities = [];
+
+  const grouped =
+    rowsGroupedBySubject(
+      rows
+    );
+
+  Object.entries(grouped)
+    .forEach(
+      ([subject, subjectRows]) => {
+
+        const combinedText =
+          subjectRows
+            .map(
+              (row) =>
+                row.text || ""
+            )
+            .join(" ")
+            .toLowerCase();
+
+        const verbs =
+          unique(
+            subjectRows.flatMap(
+              (row) =>
+                findCognitiveVerbs(
+                  row.text
+                )
+            )
+          );
+
+        const explicitFocus = [];
+
+        if (
+          /vocab|terminolog|language feature|technical|topic-specific/
+            .test(combinedText)
+        ) {
+          explicitFocus.push(
+            "subject-specific and academic vocabulary"
+          );
+        }
+
+        if (
+          /source|text|information|data|evidence|graph|table|map|image/
+            .test(combinedText)
+        ) {
+          explicitFocus.push(
+            "the background knowledge needed to understand the texts, sources, information or data used in the unit"
+          );
+        }
+
+        explicitFocus.push(
+          "the essential content knowledge and concepts identified in the selected Achievement Standard aspects"
+        );
+
+        priorities.push(
+          createTeachingPriority({
+            type:
+              "Explicit teaching",
+            subject,
+            focus:
+              `Teach ${joinNaturalList(
+                unique(explicitFocus)
+              )}.`,
+            reason:
+              "Students need secure knowledge and vocabulary before they can successfully engage with higher-order thinking or assessment.",
+            source:
+              "Curriculum"
+          })
+        );
+
+        const modelledActions =
+          buildSubjectPriorityActions(
+            verbs
+          );
+
+        if (
+          modelledActions.length
+        ) {
+          priorities.push(
+            createTeachingPriority({
+              type:
+                "Modelled instruction",
+              subject,
+              focus:
+                `Model how to ${joinNaturalList(
+                  modelledActions
+                )}.`,
+              reason:
+                `These processes are embedded in the selected ${subject} Achievement Standard aspects and should be made visible before students are expected to perform them independently.`,
+              source:
+                "Cognitive demand"
+            })
+          );
+        }
+
+        const guidedActions =
+          buildAssessmentPracticeActions(
+            verbs
+          );
+
+        if (
+          guidedActions.length
+        ) {
+          priorities.push(
+            createTeachingPriority({
+              type:
+                "Guided practice",
+              subject,
+              focus:
+                `Provide scaffolded practice in ${joinNaturalList(
+                  guidedActions
+                )}.`,
+              reason:
+                "Students need supported opportunities to rehearse the required thinking and processes, receive feedback and refine their responses.",
+              source:
+                "Curriculum + assessment"
+            })
+          );
+        }
+
+      }
+    );
+
+  const formats =
+    unique(
+      assessmentComponents
+        .map(
+          (component) =>
+            component.evidenceFormat
+        )
+        .filter(
+          (format) =>
+            format &&
+            format !== "__own"
+        )
+    );
+
+  if (
+    formats.length
+  ) {
+    priorities.push(
+      createTeachingPriority({
+        type:
+          "Guided practice",
+        subject:
+          "Assessment preparation",
+        focus:
+          `Give students prior practice using the response formats they will encounter in the assessment, including ${joinNaturalList(
+            formats
+          )}.`,
+        reason:
+          "The assessment should measure the intended curriculum learning rather than a student's first attempt at an unfamiliar response format.",
+        source:
+          "Assessment evidence map"
+      })
+    );
+  }
+
+  const assessmentVerbs =
+    unique(
+      assessmentComponents
+        .flatMap(
+          (component) =>
+            component.verbs || []
+        )
+    );
+
+  const independentActions =
+    buildAssessmentPracticeActions(
+      assessmentVerbs
+    );
+
+  if (
+    independentActions.length
+  ) {
+    priorities.push(
+      createTeachingPriority({
+        type:
+          "Independent application",
+        subject:
+          "Assessment preparation",
+        focus:
+          `Provide an independent practice opportunity where students apply ${joinNaturalList(
+            independentActions
+          )} before summative assessment.`,
+        reason:
+          "Independent practice helps confirm that students can transfer the learning without teacher prompting or excessive scaffolding.",
+        source:
+          "Assessment readiness"
+      })
+    );
+  }
+
+  const existing =
+    Array.isArray(
+      unitPlan.sequence
+        .teachingPriorities
+    )
+      ? unitPlan.sequence
+          .teachingPriorities
+      : [];
+
+  const merged =
+    mergeTeachingPriorities(
+      priorities,
+      existing
+    );
+
+  updateUnitPlan(
+    "sequence.teachingPriorities",
+    merged
+  );
+
+  renderSavedTeachingPriorities();
+}
+
+
+// ============================================================
+// TEACHING PRIORITY HELPERS
+// ============================================================
+
+function createTeachingPriority({
+  type,
+  subject,
+  focus,
+  reason,
+  source
+}) {
+
+  return {
+    id:
+      crypto.randomUUID(),
+    type,
+    subject,
+    focus,
+    reason,
+    source,
+    teacherNote:
+      "",
+    completed:
+      false
+  };
+}
+
+
+function buildSubjectPriorityActions(
+  verbs
+) {
+
+  const actions = [];
+
+  if (
+    includesAny(
+      verbs,
+      [
+        "read",
+        "view",
+        "comprehend"
+      ]
+    )
+  ) {
+    actions.push(
+      "read, view and comprehend relevant texts, sources or representations"
+    );
+  }
+
+  if (
+    includesAny(
+      verbs,
+      [
+        "identify",
+        "recognise",
+        "select",
+        "locate"
+      ]
+    )
+  ) {
+    actions.push(
+      "identify and select relevant information, features or relationships"
+    );
+  }
+
+  if (
+    includesAny(
+      verbs,
+      [
+        "interpret",
+        "analyse",
+        "infer"
+      ]
+    )
+  ) {
+    actions.push(
+      "interpret and analyse information or evidence"
+    );
+  }
+
+  if (
+    includesAny(
+      verbs,
+      [
+        "describe",
+        "explain",
+        "compare"
+      ]
+    )
+  ) {
+    actions.push(
+      "describe and explain ideas, features and relationships"
+    );
+  }
+
+  if (
+    includesAny(
+      verbs,
+      [
+        "organise",
+        "sequence",
+        "group",
+        "link"
+      ]
+    )
+  ) {
+    actions.push(
+      "organise, sequence and link ideas logically"
+    );
+  }
+
+  if (
+    includesAny(
+      verbs,
+      [
+        "create",
+        "construct",
+        "represent",
+        "communicate",
+        "write",
+        "present"
+      ]
+    )
+  ) {
+    actions.push(
+      "create and communicate an appropriate response for purpose and audience"
+    );
+  }
+
+  if (
+    includesAny(
+      verbs,
+      [
+        "use",
+        "apply"
+      ]
+    )
+  ) {
+    actions.push(
+      "apply the required language features, conventions, knowledge or processes"
+    );
+  }
+
+  if (
+    includesAny(
+      verbs,
+      [
+        "develop",
+        "plan",
+        "investigate",
+        "collect"
+      ]
+    )
+  ) {
+    actions.push(
+      "develop questions or plans and gather relevant information or evidence"
+    );
+  }
+
+  if (
+    includesAny(
+      verbs,
+      [
+        "evaluate",
+        "justify",
+        "propose"
+      ]
+    )
+  ) {
+    actions.push(
+      "make and justify considered judgements, conclusions or proposals"
+    );
+  }
+
+  if (
+    includesAny(
+      verbs,
+      [
+        "demonstrate",
+        "perform"
+      ]
+    )
+  ) {
+    actions.push(
+      "demonstrate the required skill or process"
+    );
+  }
+
+  if (
+    verbs.includes(
+      "classify"
+    )
+  ) {
+    actions.push(
+      "classify using appropriate characteristics or criteria"
+    );
+  }
+
+  if (
+    verbs.includes(
+      "summarise"
+    )
+  ) {
+    actions.push(
+      "summarise the most important information or ideas"
+    );
+  }
+
+  return unique(
+    actions
+  );
+}
+
+
+function mergeTeachingPriorities(
+  generated,
+  existing
+) {
+
+  const existingByKey =
+    new Map(
+      existing.map(
+        (item) => [
+          teachingPriorityKey(
+            item
+          ),
+          item
+        ]
+      )
+    );
+
+  return generated.map(
+    (item) => {
+
+      const previous =
+        existingByKey.get(
+          teachingPriorityKey(
+            item
+          )
+        );
+
+      if (!previous) {
+        return item;
+      }
+
+      return {
+        ...item,
+        id:
+          previous.id ||
+          item.id,
+        teacherNote:
+          previous.teacherNote ||
+          "",
+        completed:
+          Boolean(
+            previous.completed
+          )
+      };
+
+    }
+  );
+}
+
+
+function teachingPriorityKey(
+  item
+) {
+
+  return [
+    item.type || "",
+    item.subject || "",
+    item.focus || ""
+  ]
+    .join("|")
+    .toLowerCase();
+}
+
+
+// ============================================================
+// RENDER TEACHING PRIORITIES
+// ============================================================
+
+function renderSavedTeachingPriorities() {
+
+  const container =
+    document.getElementById(
+      "teachingPriorities"
+    );
+
+  if (!container) {
+    return;
+  }
+
+  const priorities =
+    Array.isArray(
+      unitPlan.sequence
+        .teachingPriorities
+    )
+      ? unitPlan.sequence
+          .teachingPriorities
+      : [];
+
+  if (!priorities.length) {
+
+    container.innerHTML = `
+      <div class="empty">
+        Select
+        <strong>
+          Suggest priorities
+        </strong>
+        to identify the learning that may
+        require explicit teaching, modelling,
+        guided practice and independent
+        application.
+      </div>
+    `;
+
+    return;
+  }
+
+  const order = [
+    "Explicit teaching",
+    "Modelled instruction",
+    "Guided practice",
+    "Independent application"
+  ];
+
+  const grouped =
+    priorities.reduce(
+      (result, item) => {
+
+        const type =
+          item.type ||
+          "Teaching priority";
+
+        if (!result[type]) {
+          result[type] = [];
+        }
+
+        result[type].push(
+          item
+        );
+
+        return result;
+
+      },
+      {}
+    );
+
+  container.innerHTML =
+    order
+      .filter(
+        (type) =>
+          grouped[type]
+            ?.length
+      )
+      .map(
+        (type) => `
+          <section class="priority-group">
+
+            <div class="priority-group-head">
+
+              <h4>
+                ${escapeHtml(
+                  type
+                )}
+              </h4>
+
+              <span>
+                ${grouped[type].length}
+                priorit${
+                  grouped[type].length === 1
+                    ? "y"
+                    : "ies"
+                }
+              </span>
+
+            </div>
+
+            <div class="priority-group-list">
+
+              ${
+                grouped[type]
+                  .map(
+                    (priority) =>
+                      teachingPriorityHtml(
+                        priority
+                      )
+                  )
+                  .join("")
+              }
+
+            </div>
+
+          </section>
+        `
+      )
+      .join("");
+
+  bindTeachingPriorityEvents();
+}
+
+
+// ============================================================
+// PRIORITY CARD
+// ============================================================
+
+function teachingPriorityHtml(
+  priority
+) {
+
+  return `
+    <article
+      class="teaching-priority-card"
+      data-priority="${escapeAttribute(
+        priority.id
+      )}"
+    >
+
+      <div>
+
+        <input
+          type="checkbox"
+          class="priority-complete"
+          ${
+            priority.completed
+              ? "checked"
+              : ""
+          }
+          aria-label="Mark teaching priority as addressed"
+        >
+
+      </div>
+
+      <div class="priority-main">
+
+        <div class="priority-meta">
+
+          <span class="priority-type">
+            ${escapeHtml(
+              priority.type
+            )}
+          </span>
+
+          <strong>
+            ${escapeHtml(
+              priority.subject
+            )}
+          </strong>
+
+        </div>
+
+        <textarea
+          class="priority-focus"
+          rows="3"
+        >${escapeHtml(
+          priority.focus
+        )}</textarea>
+
+        <div class="priority-reason">
+
+          <strong>
+            Why this matters:
+          </strong>
+
+          ${escapeHtml(
+            priority.reason
+          )}
+
+        </div>
+
+        <label class="priority-note-label">
+
+          Teacher planning note
+
+          <textarea
+            class="priority-note"
+            rows="2"
+            placeholder="Add specific texts, examples, resources, scaffolds or teaching decisions..."
+          >${escapeHtml(
+            priority.teacherNote ||
+            ""
+          )}</textarea>
+
+        </label>
+
+      </div>
+
+      <div class="priority-source">
+        ${escapeHtml(
+          priority.source
+        )}
+      </div>
+
+    </article>
+  `;
+}
+
+
+// ============================================================
+// PRIORITY EVENTS
+// ============================================================
+
+function bindTeachingPriorityEvents() {
+
+  document
+    .querySelectorAll(
+      ".teaching-priority-card"
+    )
+    .forEach(
+      (card) => {
+
+        const id =
+          card.dataset.priority;
+
+        card
+          .querySelector(
+            ".priority-complete"
+          )
+          ?.addEventListener(
+            "change",
+            (event) => {
+
+              updateTeachingPriority(
+                id,
+                {
+                  completed:
+                    event.target.checked
+                }
+              );
+
+            }
+          );
+
+        card
+          .querySelector(
+            ".priority-focus"
+          )
+          ?.addEventListener(
+            "input",
+            (event) => {
+
+              updateTeachingPriority(
+                id,
+                {
+                  focus:
+                    event.target.value
+                }
+              );
+
+            }
+          );
+
+        card
+          .querySelector(
+            ".priority-note"
+          )
+          ?.addEventListener(
+            "input",
+            (event) => {
+
+              updateTeachingPriority(
+                id,
+                {
+                  teacherNote:
+                    event.target.value
+                }
+              );
+
+            }
+          );
+
+      }
+    );
+}
+
+
+function updateTeachingPriority(
+  priorityId,
+  changes
+) {
+
+  const priorities =
+    Array.isArray(
+      unitPlan.sequence
+        .teachingPriorities
+    )
+      ? [
+          ...unitPlan.sequence
+            .teachingPriorities
+        ]
+      : [];
+
+  const updated =
+    priorities.map(
+      (priority) =>
+        priority.id ===
+        priorityId
+          ? {
+              ...priority,
+              ...changes
+            }
+          : priority
+    );
+
+  updateUnitPlan(
+    "sequence.teachingPriorities",
+    updated
+  );
+}
+
+
 // ============================================================
 // ASSESSMENT INFORMATION
 // ============================================================
@@ -2267,6 +3101,8 @@ function joinNaturalList(
     .join(", ")}, and ${cleaned.at(-1)}`;
 
 }
+
+
 // ============================================================
 // HTML SAFETY HELPERS
 // ============================================================
