@@ -32,8 +32,6 @@ export function initIntegrationPage() {
 
   bindAddConnection();
 
-  bindSuggestionActions();
-
   renderConnections();
 
   buildCurriculumVocabulary();
@@ -150,29 +148,28 @@ function bindIntegrationFields() {
     );
 
 
-  if (
-    terminology
-  ) {
-
-    terminology.addEventListener(
-      "input",
-      () => {
-
-        updateUnitPlan(
-          "integration.terminology",
-          terminology.value
-        );
-
-
-        updateUnitPlan(
-          "integration.vocabularyEditedByTeacher",
-          true
-        );
-
-      }
-    );
-
+  if (!terminology) {
+    return;
   }
+
+
+  terminology.addEventListener(
+    "input",
+    () => {
+
+      updateUnitPlan(
+        "integration.terminology",
+        terminology.value
+      );
+
+
+      updateUnitPlan(
+        "integration.vocabularyEditedByTeacher",
+        true
+      );
+
+    }
+  );
 
 }
 
@@ -192,12 +189,8 @@ function bindTextField(
     );
 
 
-  if (
-    !element
-  ) {
-
+  if (!element) {
     return;
-
   }
 
 
@@ -230,12 +223,8 @@ function buildCurriculumVocabulary(
     );
 
 
-  if (
-    !field
-  ) {
-
+  if (!field) {
     return;
-
   }
 
 
@@ -243,9 +232,7 @@ function buildCurriculumVocabulary(
     getSelectedCurriculumRows();
 
 
-  if (
-    !rows.length
-  ) {
+  if (!rows.length) {
 
     if (
       !field.value.trim()
@@ -295,14 +282,6 @@ function buildCurriculumVocabulary(
     previousSignature;
 
 
-  // ----------------------------------------------------------
-  // Automatically build:
-  // - first visit
-  // - empty field
-  // - curriculum changed and teacher has not edited
-  // - teacher deliberately presses Refresh
-  // ----------------------------------------------------------
-
   const shouldBuild =
     force ||
     fieldEmpty ||
@@ -312,9 +291,7 @@ function buildCurriculumVocabulary(
     );
 
 
-  if (
-    !shouldBuild
-  ) {
+  if (!shouldBuild) {
 
     showVocabularyMessage(
       "The Step 2 curriculum has changed, but your vocabulary contains teacher edits. Use Refresh curriculum vocabulary if you want to rebuild it."
@@ -437,10 +414,7 @@ function createVocabularyPlan(
           ),
 
         area:
-          displayVocabularyArea(
-            group.subject,
-            group.area
-          ),
+          group.area,
 
         tier2:
           prioritiseWords(
@@ -495,8 +469,7 @@ function groupCurriculumRows(
 
 
       const area =
-        row.area ||
-        inferAreaFromText(
+        normaliseCurriculumArea(
           row
         );
 
@@ -563,55 +536,280 @@ function groupCurriculumRows(
 
 
 // ============================================================
-// DISPLAY AREA
+// NORMALISE CURRICULUM AREA
 // ============================================================
 
-function displayVocabularyArea(
-  subject,
-  area
+function normaliseCurriculumArea(
+  row
 ) {
 
-  const text =
+  const subject =
+    row.subject || "";
+
+
+  const area =
     String(
-      area ||
-      ""
+      row.area || ""
     );
 
 
-  // Make the teacher-facing heading cleaner if curriculum
-  // area contains sublabels such as:
-  // "Knowledge & Understanding — Data"
+  const lower =
+    area.toLowerCase();
+
 
   if (
-    subject ===
-      "Digital Technologies" ||
-    subject ===
-      "Design and Technologies"
+    subject === "English"
   ) {
 
     if (
-      /algorithm|privacy|security|data/i.test(
-        text
+      /literature|literary/.test(
+        lower
       )
     ) {
+      return "Literature";
+    }
 
-      return text;
 
+    if (
+      /literacy|reading|viewing|writing|creating|speaking|listening/.test(
+        lower
+      )
+    ) {
+      return "Literacy";
+    }
+
+
+    return inferAreaFromText(
+      row
+    );
+
+  }
+
+
+  if (
+    subject === "Science"
+  ) {
+
+    if (
+      /biological|living/.test(
+        lower
+      )
+    ) {
+      return "Biological Sciences";
+    }
+
+
+    if (
+      /chemical|material/.test(
+        lower
+      )
+    ) {
+      return "Chemical Sciences";
+    }
+
+
+    if (
+      /earth|space/.test(
+        lower
+      )
+    ) {
+      return "Earth & Space Sciences";
+    }
+
+
+    if (
+      /physical/.test(
+        lower
+      )
+    ) {
+      return "Physical Sciences";
+    }
+
+
+    if (
+      /inquiry|skill/.test(
+        lower
+      )
+    ) {
+      return "Science Inquiry";
     }
 
   }
 
 
-  return text;
+  if (
+    subject === "HASS"
+  ) {
+
+    if (/history/.test(lower)) {
+      return "History";
+    }
+
+    if (/geograph/.test(lower)) {
+      return "Geography";
+    }
+
+    if (/civic/.test(lower)) {
+      return "Civics & Citizenship";
+    }
+
+    if (
+      /economic|business/.test(
+        lower
+      )
+    ) {
+      return "Economics & Business";
+    }
+
+    if (
+      /skill|inquiry/.test(
+        lower
+      )
+    ) {
+      return "HASS Skills";
+    }
+
+  }
+
+
+  if (
+    subject === "Mathematics"
+  ) {
+
+    const areas = [
+      "Number",
+      "Algebra",
+      "Measurement",
+      "Space",
+      "Statistics",
+      "Probability"
+    ];
+
+
+    const found =
+      areas.find(
+        (candidate) =>
+          lower.includes(
+            candidate.toLowerCase()
+          )
+      );
+
+
+    if (found) {
+      return found;
+    }
+
+  }
+
+
+  if (
+    subject === "HPE"
+  ) {
+
+    if (
+      /movement|physical/.test(
+        lower
+      )
+    ) {
+      return "Movement & Physical Activity";
+    }
+
+
+    if (
+      /relationship|safety/.test(
+        lower
+      )
+    ) {
+      return "Relationships & Safety";
+    }
+
+
+    if (
+      /skill|wellbeing/.test(
+        lower
+      )
+    ) {
+      return "Health & Wellbeing Skills";
+    }
+
+
+    return "Personal, Social & Community Health";
+
+  }
+
+
+  if (
+    subject ===
+    "Design and Technologies"
+  ) {
+
+    if (
+      /process|production|skill/.test(
+        lower
+      )
+    ) {
+
+      return "Processes & Production Skills";
+
+    }
+
+
+    return "Design & Technologies";
+
+  }
+
+
+  if (
+    subject ===
+    "Digital Technologies"
+  ) {
+
+    if (
+      /process|production|algorithm|data|privacy|security|skill/.test(
+        lower
+      )
+    ) {
+
+      return "Digital Skills & Safety";
+
+    }
+
+
+    return "Digital Technologies";
+
+  }
+
+
+  if (
+    [
+      "Dance",
+      "Drama",
+      "Media Arts",
+      "Music",
+      "Visual Arts"
+    ]
+      .includes(
+        subject
+      )
+  ) {
+
+    return subject;
+
+  }
+
+
+  return (
+    area ||
+    inferAreaFromText(
+      row
+    )
+  );
 
 }
 
 
 // ============================================================
 // FALLBACK AREA INFERENCE
-//
-// Most curriculum rows already contain row.area.
-// This is only used if one does not.
 // ============================================================
 
 function inferAreaFromText(
@@ -630,18 +828,15 @@ function inferAreaFromText(
 
 
   if (
-    subject ===
-    "English"
+    subject === "English"
   ) {
 
     if (
-      /character|setting|plot|literary|literature|poem|narrative/.test(
+      /character|setting|plot|literary|poem|narrative/.test(
         text
       )
     ) {
-
       return "Literature";
-
     }
 
 
@@ -650,9 +845,7 @@ function inferAreaFromText(
         text
       )
     ) {
-
       return "Literacy";
-
     }
 
 
@@ -662,73 +855,7 @@ function inferAreaFromText(
 
 
   if (
-    subject ===
-    "Mathematics"
-  ) {
-
-    if (
-      /chance|probab|likelihood/.test(
-        text
-      )
-    ) {
-
-      return "Probability";
-
-    }
-
-
-    if (
-      /data|statistic|graph|distribution/.test(
-        text
-      )
-    ) {
-
-      return "Statistics";
-
-    }
-
-
-    if (
-      /shape|angle|position|location|transform|symmetry/.test(
-        text
-      )
-    ) {
-
-      return "Space";
-
-    }
-
-
-    if (
-      /measure|length|mass|capacity|area|perimeter|time|volume/.test(
-        text
-      )
-    ) {
-
-      return "Measurement";
-
-    }
-
-
-    if (
-      /pattern|rule|equation|unknown|variable|equival/.test(
-        text
-      )
-    ) {
-
-      return "Algebra";
-
-    }
-
-
-    return "Number";
-
-  }
-
-
-  if (
-    subject ===
-    "Science"
+    subject === "Science"
   ) {
 
     if (
@@ -736,9 +863,7 @@ function inferAreaFromText(
         text
       )
     ) {
-
       return "Biological Sciences";
-
     }
 
 
@@ -747,9 +872,7 @@ function inferAreaFromText(
         text
       )
     ) {
-
       return "Chemical Sciences";
-
     }
 
 
@@ -758,9 +881,7 @@ function inferAreaFromText(
         text
       )
     ) {
-
       return "Earth & Space Sciences";
-
     }
 
 
@@ -769,9 +890,7 @@ function inferAreaFromText(
         text
       )
     ) {
-
       return "Physical Sciences";
-
     }
 
 
@@ -781,8 +900,7 @@ function inferAreaFromText(
 
 
   if (
-    subject ===
-    "HASS"
+    subject === "HASS"
   ) {
 
     if (
@@ -790,9 +908,7 @@ function inferAreaFromText(
         text
       )
     ) {
-
       return "History";
-
     }
 
 
@@ -801,9 +917,7 @@ function inferAreaFromText(
         text
       )
     ) {
-
       return "Geography";
-
     }
 
 
@@ -812,9 +926,7 @@ function inferAreaFromText(
         text
       )
     ) {
-
       return "Civics & Citizenship";
-
     }
 
 
@@ -823,9 +935,7 @@ function inferAreaFromText(
         text
       )
     ) {
-
       return "Economics & Business";
-
     }
 
 
@@ -834,39 +944,10 @@ function inferAreaFromText(
   }
 
 
-  if (
-    subject ===
-    "HPE"
-  ) {
-
-    if (
-      /movement|physical|fitness|game|skill/.test(
-        text
-      )
-    ) {
-
-      return "Movement & Physical Activity";
-
-    }
-
-
-    if (
-      /relationship|safe|safety|consent|protect/.test(
-        text
-      )
-    ) {
-
-      return "Relationships & Safety";
-
-    }
-
-
-    return "Personal, Social & Community Health";
-
-  }
-
-
-  return subject;
+  return (
+    row.area ||
+    subject
+  );
 
 }
 
@@ -895,23 +976,19 @@ function prioritiseWords(
         (
           word,
           index
-        ) => {
+        ) => ({
 
-          return {
+          word,
 
-            word,
+          index,
 
-            index,
+          score:
+            wordScore(
+              word,
+              text
+            )
 
-            score:
-              wordScore(
-                word,
-                text
-              )
-
-          };
-
-        }
+        })
       );
 
 
@@ -922,22 +999,13 @@ function prioritiseWords(
     ) => {
 
       if (
-        b.score !==
-        a.score
+        b.score !== a.score
       ) {
-
-        return (
-          b.score -
-          a.score
-        );
-
+        return b.score - a.score;
       }
 
 
-      return (
-        a.index -
-        b.index
-      );
+      return a.index - b.index;
 
     }
   );
@@ -957,7 +1025,7 @@ function prioritiseWords(
 
 
 // ============================================================
-// WORD RELEVANCE SCORE
+// WORD RELEVANCE
 // ============================================================
 
 function wordScore(
@@ -971,12 +1039,8 @@ function wordScore(
     );
 
 
-  if (
-    !target
-  ) {
-
+  if (!target) {
     return 0;
-
   }
 
 
@@ -990,9 +1054,7 @@ function wordScore(
   ) {
 
     score +=
-      target.includes(
-        " "
-      )
+      target.includes(" ")
         ? 15
         : 12;
 
@@ -1000,9 +1062,7 @@ function wordScore(
 
 
   target
-    .split(
-      " "
-    )
+    .split(" ")
     .filter(
       (part) =>
         part.length >= 4
@@ -1037,10 +1097,7 @@ function formatVocabularyPlan(
   plan
 ) {
 
-  if (
-    !plan.length
-  ) {
-
+  if (!plan.length) {
     return "";
   }
 
@@ -1102,7 +1159,7 @@ function formatVocabularyPlan(
 
 
 // ============================================================
-// REFRESH VOCABULARY BUTTON
+// REFRESH VOCABULARY
 // ============================================================
 
 function bindVocabularyRefresh() {
@@ -1132,7 +1189,7 @@ function bindVocabularyRefresh() {
 
 
 // ============================================================
-// SHOW VOCABULARY MESSAGE
+// VOCABULARY MESSAGE
 // ============================================================
 
 function showVocabularyMessage(
@@ -1145,31 +1202,30 @@ function showVocabularyMessage(
     );
 
 
-  if (
-    output
-  ) {
-
-    output.innerHTML = `
-
-      <strong>
-        Curriculum vocabulary
-      </strong>
-
-      <p>
-        ${escapeHtml(
-          message
-        )}
-      </p>
-
-    `;
-
+  if (!output) {
+    return;
   }
+
+
+  output.innerHTML = `
+
+    <strong>
+      Curriculum vocabulary
+    </strong>
+
+    <p>
+      ${escapeHtml(
+        message
+      )}
+    </p>
+
+  `;
 
 }
 
 
 // ============================================================
-// SUGGEST POSSIBILITIES
+// SUGGEST POSSIBILITIES BUTTON
 // ============================================================
 
 function bindSuggestPossibilities() {
@@ -1187,7 +1243,7 @@ function bindSuggestPossibilities() {
 
 
 // ============================================================
-// SHOW INTEGRATION SUGGESTIONS
+// GENERATE ALL STEP 3 SUGGESTIONS
 // ============================================================
 
 function showIntegrationSuggestions() {
@@ -1202,12 +1258,8 @@ function showIntegrationSuggestions() {
     );
 
 
-  if (
-    !output
-  ) {
-
+  if (!output) {
     return;
-
   }
 
 
@@ -1221,8 +1273,7 @@ function showIntegrationSuggestions() {
       <div class="empty">
 
         Select at least two Achievement Standard aspects
-        in Step 2 before generating integration
-        suggestions.
+        in Step 2 before generating integration ideas.
 
       </div>
 
@@ -1242,15 +1293,19 @@ function showIntegrationSuggestions() {
 
   output.innerHTML = `
 
+    <!-- ===============================================
+         SHARED CONCEPT / BIG IDEA
+         =============================================== -->
+
     <div class="integration-suggestion-group">
 
       <h3>
-        Possible conceptual connections
+        Ideas for shared concept / big idea
       </h3>
 
       <p class="helper">
-        Choose a conceptual lens that genuinely connects
-        the selected curriculum.
+        These concepts have been identified from the
+        Achievement Standard aspects selected in Step 2.
       </p>
 
 
@@ -1260,15 +1315,21 @@ function showIntegrationSuggestions() {
           suggestions.concepts
             .map(
               (
-                suggestion,
+                concept,
                 index
               ) => `
 
                 <article class="integration-suggestion-card">
 
+                  <strong>
+                    ${escapeHtml(
+                      concept.title
+                    )}
+                  </strong>
+
                   <p>
                     ${escapeHtml(
-                      suggestion.text
+                      concept.description
                     )}
                   </p>
 
@@ -1277,7 +1338,7 @@ function showIntegrationSuggestions() {
                     class="integration-use-button"
                     data-use-concept="${index}"
                   >
-                    Use this concept
+                    Use this idea
                   </button>
 
                 </article>
@@ -1291,6 +1352,64 @@ function showIntegrationSuggestions() {
 
     </div>
 
+
+    <!-- ===============================================
+         AUTHENTIC CONTEXT
+         =============================================== -->
+
+    <div class="integration-suggestion-group">
+
+      <h3>
+        Ideas for an authentic context or problem
+      </h3>
+
+      <p class="helper">
+        Choose or adapt a context that gives students a
+        meaningful reason to use the selected learning.
+      </p>
+
+
+      <div class="integration-suggestion-list">
+
+        ${
+          suggestions.contexts
+            .map(
+              (
+                context,
+                index
+              ) => `
+
+                <article class="integration-suggestion-card">
+
+                  <p>
+                    ${escapeHtml(
+                      context
+                    )}
+                  </p>
+
+                  <button
+                    type="button"
+                    class="integration-use-button"
+                    data-use-context="${index}"
+                  >
+                    Use this idea
+                  </button>
+
+                </article>
+
+              `
+            )
+            .join("")
+        }
+
+      </div>
+
+    </div>
+
+
+    <!-- ===============================================
+         INTEGRATION OPPORTUNITIES
+         =============================================== -->
 
     <div class="integration-suggestion-group">
 
@@ -1321,11 +1440,20 @@ function showIntegrationSuggestions() {
     </div>
 
 
+    <!-- ===============================================
+         INTEGRATION NOTES
+         =============================================== -->
+
     <div class="integration-suggestion-group">
 
       <h3>
-        Possible integration notes
+        Ideas for integration notes
       </h3>
+
+      <p class="helper">
+        Add any that are useful, then edit them to reflect
+        the unit and the learners.
+      </p>
 
 
       <div class="integration-suggestion-list">
@@ -1368,27 +1496,27 @@ function showIntegrationSuggestions() {
 
     <p class="helper integration-caution">
 
-      These are planning prompts, not prescribed
-      connections. Keep each selected Achievement
-      Standard aspect visible and retain explicit
-      disciplinary teaching where required.
+      These are starting points rather than prescribed
+      connections. Teachers should retain subject-specific
+      teaching where it is needed to meet the selected
+      Achievement Standard.
 
     </p>
 
   `;
 
 
-  output._suggestionData =
+  output._integrationSuggestions =
     suggestions;
 
 
-  bindSuggestionActions();
+  bindGeneratedSuggestionButtons();
 
 }
 
 
 // ============================================================
-// CREATE INTEGRATION SUGGESTIONS
+// CREATE SUGGESTION SET
 // ============================================================
 
 function createIntegrationSuggestions(
@@ -1408,8 +1536,7 @@ function createIntegrationSuggestions(
     uniqueWords(
       rows.map(
         (row) =>
-          row.area ||
-          inferAreaFromText(
+          normaliseCurriculumArea(
             row
           )
       )
@@ -1432,7 +1559,7 @@ function createIntegrationSuggestions(
   return {
 
     concepts:
-      buildConcepts(
+      buildConceptIdeas(
         text,
         subjects
       )
@@ -1441,8 +1568,19 @@ function createIntegrationSuggestions(
           5
         ),
 
+    contexts:
+      buildAuthenticContextIdeas(
+        text,
+        subjects,
+        areas
+      )
+        .slice(
+          0,
+          5
+        ),
+
     opportunities:
-      buildOpportunities(
+      buildIntegrationOpportunities(
         text,
         subjects
       )
@@ -1452,13 +1590,13 @@ function createIntegrationSuggestions(
         ),
 
     notes:
-      buildNotes(
+      buildIntegrationNotes(
         subjects,
         areas
       )
         .slice(
           0,
-          5
+          6
         )
 
   };
@@ -1467,10 +1605,10 @@ function createIntegrationSuggestions(
 
 
 // ============================================================
-// CONCEPTUAL CONNECTIONS
+// CONCEPT IDEAS
 // ============================================================
 
-function buildConcepts(
+function buildConceptIdeas(
   text,
   subjects
 ) {
@@ -1483,7 +1621,7 @@ function buildConcepts(
     text,
     /change|continuity|develop|adapt|transform|growth/,
     "Change",
-    "How people, places, ideas, systems or living things change and what stays the same."
+    "Explore how people, places, ideas, systems or living things change and what remains the same."
   );
 
 
@@ -1492,7 +1630,7 @@ function buildConcepts(
     text,
     /cause|effect|impact|influence|consequence|result/,
     "Cause and effect",
-    "How actions, events, choices or processes lead to consequences."
+    "Explore how actions, events, decisions or processes lead to outcomes and consequences."
   );
 
 
@@ -1501,7 +1639,7 @@ function buildConcepts(
     text,
     /connection|relationship|interconnection|interact/,
     "Connections",
-    "How people, environments, systems, ideas or texts are connected."
+    "Explore how people, environments, systems, ideas, texts or experiences are connected."
   );
 
 
@@ -1510,7 +1648,7 @@ function buildConcepts(
     text,
     /perspective|viewpoint|point of view|representation/,
     "Perspective",
-    "How ideas, events or experiences can be understood and represented differently."
+    "Explore how people interpret and represent ideas, experiences or events differently."
   );
 
 
@@ -1519,7 +1657,7 @@ function buildConcepts(
     text,
     /audience|purpose|communicat|message|inform|persuad/,
     "Communication",
-    "How ideas are shaped and communicated for different purposes and audiences."
+    "Explore how ideas are shaped and communicated for different purposes and audiences."
   );
 
 
@@ -1528,7 +1666,7 @@ function buildConcepts(
     text,
     /identity|belong|culture|community|heritage/,
     "Identity and belonging",
-    "How people understand themselves and their connections to groups, cultures and communities."
+    "Explore how people understand themselves and their connections with groups, cultures, places and communities."
   );
 
 
@@ -1537,7 +1675,7 @@ function buildConcepts(
     text,
     /sustainab|resource|environment|care|manage|responsib/,
     "Sustainability and responsibility",
-    "How decisions and actions affect people, places, environments and resources."
+    "Explore how choices and actions affect people, places, environments and resources."
   );
 
 
@@ -1546,7 +1684,7 @@ function buildConcepts(
     text,
     /evidence|source|data|investigat|observe/,
     "Evidence",
-    "How evidence, observations, sources and data support understanding and conclusions."
+    "Explore how observations, sources, data and evidence help us build and communicate understanding."
   );
 
 
@@ -1555,16 +1693,16 @@ function buildConcepts(
     text,
     /design|solution|problem|criteria|test|improve/,
     "Problem solving and design",
-    "How ideas and solutions are developed, tested, evaluated and improved."
+    "Explore how ideas and solutions can be developed, tested, evaluated and improved."
   );
 
 
   addConcept(
     concepts,
     text,
-    /pattern|sequence|structure|organis|relationship/,
+    /pattern|sequence|structure|organis/,
     "Patterns and structure",
-    "How information, ideas, processes and systems are organised."
+    "Explore how information, ideas, processes and systems are organised and connected."
   );
 
 
@@ -1577,8 +1715,8 @@ function buildConcepts(
       title:
         "Connections",
 
-      text:
-        `Connections — explore a meaningful relationship between the selected learning in ${subjects.join(" and ")}.`
+      description:
+        `Explore the meaningful connections between the selected learning in ${subjects.join(" and ")}.`
 
     });
 
@@ -1591,7 +1729,7 @@ function buildConcepts(
 
 
 // ============================================================
-// ADD CONCEPT WHEN MATCHED
+// ADD CONCEPT
 // ============================================================
 
 function addConcept(
@@ -1609,12 +1747,8 @@ function addConcept(
   ) {
 
     list.push({
-
       title,
-
-      text:
-        `${title} — ${description}`
-
+      description
     });
 
   }
@@ -1623,10 +1757,213 @@ function addConcept(
 
 
 // ============================================================
-// AUTHENTIC INTEGRATION OPPORTUNITIES
+// AUTHENTIC CONTEXT IDEAS
 // ============================================================
 
-function buildOpportunities(
+function buildAuthenticContextIdeas(
+  text,
+  subjects,
+  areas
+) {
+
+  const ideas = [];
+
+
+  const has =
+    (subject) =>
+      subjects.includes(
+        subject
+      );
+
+
+  const hasArts =
+    [
+      "Dance",
+      "Drama",
+      "Media Arts",
+      "Music",
+      "Visual Arts"
+    ]
+      .some(
+        (subject) =>
+          has(
+            subject
+          )
+      );
+
+
+  // ----------------------------------------------------------
+  // COMMUNITY / LOCAL CONTEXT
+  // ----------------------------------------------------------
+
+  if (
+    /community|place|environment|identity|belong|history|change/.test(
+      text
+    ) ||
+    has("HASS")
+  ) {
+
+    ideas.push(
+      "Investigate a local community, place, event or issue and create something that helps others understand why it is important."
+    );
+
+  }
+
+
+  // ----------------------------------------------------------
+  // SCIENCE
+  // ----------------------------------------------------------
+
+  if (
+    has("Science")
+  ) {
+
+    ideas.push(
+      "Investigate a real-world scientific question or phenomenon, gather evidence and communicate the findings to a relevant audience."
+    );
+
+  }
+
+
+  // ----------------------------------------------------------
+  // ENGLISH
+  // ----------------------------------------------------------
+
+  if (
+    has("English")
+  ) {
+
+    ideas.push(
+      "Create a text, presentation or multimodal product for a genuine audience using knowledge developed through the other selected learning areas."
+    );
+
+  }
+
+
+  // ----------------------------------------------------------
+  // TECHNOLOGIES
+  // ----------------------------------------------------------
+
+  if (
+    has(
+      "Design and Technologies"
+    ) ||
+    has(
+      "Digital Technologies"
+    )
+  ) {
+
+    ideas.push(
+      "Respond to a real or simulated need by designing, creating and improving a product, digital solution or system."
+    );
+
+  }
+
+
+  // ----------------------------------------------------------
+  // ARTS
+  // ----------------------------------------------------------
+
+  if (
+    hasArts
+  ) {
+
+    ideas.push(
+      "Create an artwork, performance or media product that communicates key ideas, perspectives or learning from the unit to an audience."
+    );
+
+  }
+
+
+  // ----------------------------------------------------------
+  // HPE
+  // ----------------------------------------------------------
+
+  if (
+    has("HPE")
+  ) {
+
+    ideas.push(
+      "Develop a campaign, resource, routine or presentation that promotes health, wellbeing, safe choices or physical activity for a particular audience."
+    );
+
+  }
+
+
+  // ----------------------------------------------------------
+  // PERSPECTIVE
+  // ----------------------------------------------------------
+
+  if (
+    /perspective|viewpoint|representation/.test(
+      text
+    )
+  ) {
+
+    ideas.push(
+      "Explore a shared issue or event from different perspectives and create a product that represents or compares those viewpoints."
+    );
+
+  }
+
+
+  // ----------------------------------------------------------
+  // SUSTAINABILITY
+  // ----------------------------------------------------------
+
+  if (
+    /environment|sustainab|resource|responsib/.test(
+      text
+    )
+  ) {
+
+    ideas.push(
+      "Investigate a local environmental or sustainability challenge and propose an action, solution or communication product."
+    );
+
+  }
+
+
+  // ----------------------------------------------------------
+  // EVIDENCE
+  // ----------------------------------------------------------
+
+  if (
+    /source|evidence|data|investigat|observe|measure/.test(
+      text
+    )
+  ) {
+
+    ideas.push(
+      "Use a shared investigation, source collection or data set as the basis for analysing evidence and communicating conclusions."
+    );
+
+  }
+
+
+  if (
+    !ideas.length
+  ) {
+
+    ideas.push(
+      `Create an authentic investigation, product or performance that gives students a meaningful reason to apply learning from ${subjects.join(" and ")}.`
+    );
+
+  }
+
+
+  return uniqueWords(
+    ideas
+  );
+
+}
+
+
+// ============================================================
+// INTEGRATION OPPORTUNITIES
+// ============================================================
+
+function buildIntegrationOpportunities(
   text,
   subjects
 ) {
@@ -1662,7 +1999,7 @@ function buildOpportunities(
   ) {
 
     results.push(
-      "Use HASS knowledge, sources or inquiry as the content students read, discuss and communicate through English."
+      "Use HASS knowledge, sources and inquiry as meaningful content for English reading, discussion, writing or presentation."
     );
 
   }
@@ -1674,7 +2011,7 @@ function buildOpportunities(
   ) {
 
     results.push(
-      "Use scientific knowledge, investigations and evidence as meaningful content for English reading, explanation, discussion or text creation."
+      "Use scientific knowledge, investigations and evidence as the content for English explanation, discussion, comprehension or text creation."
     );
 
   }
@@ -1686,7 +2023,7 @@ function buildOpportunities(
   ) {
 
     results.push(
-      "Use an Arts product, media work or performance as an authentic communication context, with English supporting audience, purpose and language choices where aligned."
+      "Use an Arts product or performance as an authentic communication context, with English supporting purpose, audience and language choices."
     );
 
   }
@@ -1698,7 +2035,7 @@ function buildOpportunities(
   ) {
 
     results.push(
-      "Represent historical, geographical, civic or cultural understanding through an Arts response while keeping the HASS evidence explicit."
+      "Use Arts processes to represent historical, geographical, civic or cultural understanding while keeping HASS disciplinary evidence visible."
     );
 
   }
@@ -1710,7 +2047,7 @@ function buildOpportunities(
   ) {
 
     results.push(
-      "Use health, relationships, wellbeing or movement learning as the authentic content for explaining, persuading, reflecting or presenting."
+      "Use health, relationships, wellbeing or movement learning as authentic subject matter for explaining, persuading, reflecting or presenting."
     );
 
   }
@@ -1726,7 +2063,7 @@ function buildOpportunities(
   ) {
 
     results.push(
-      "Frame learning around an authentic problem or need in which students investigate, plan, create, test and communicate a solution."
+      "Use an authentic problem or need to connect investigation, design, production, evaluation and communication."
     );
 
   }
@@ -1739,7 +2076,7 @@ function buildOpportunities(
   ) {
 
     results.push(
-      "Use one investigation, source set or collection of evidence to generate knowledge that can be interpreted and communicated across learning areas."
+      "Use one investigation, source set or body of evidence across learning areas rather than recreating similar activities separately."
     );
 
   }
@@ -1752,33 +2089,7 @@ function buildOpportunities(
   ) {
 
     results.push(
-      "Use one authentic product, presentation or performance to provide evidence across learning areas where the curriculum demands genuinely overlap."
-    );
-
-  }
-
-
-  if (
-    /perspective|viewpoint|representation|audience/.test(
-      text
-    )
-  ) {
-
-    results.push(
-      "Compare how the same idea, issue or experience can be represented differently depending on perspective, purpose or audience."
-    );
-
-  }
-
-
-  if (
-    /environment|place|resource|sustainab|community/.test(
-      text
-    )
-  ) {
-
-    results.push(
-      "Use a local place, community need or environmental issue as an authentic shared context for investigation, decision-making and communication."
+      "Use one authentic product, presentation or performance where multiple curriculum demands can be demonstrated without reducing the required evidence."
     );
 
   }
@@ -1789,7 +2100,7 @@ function buildOpportunities(
   ) {
 
     results.push(
-      `Look for one authentic investigation, product or performance where ${subjects.join(" + ")} can each contribute meaningful learning and evidence.`
+      `Look for a genuine shared learning experience where ${subjects.join(" + ")} contribute different but complementary curriculum demands.`
     );
 
   }
@@ -1803,27 +2114,56 @@ function buildOpportunities(
 
 
 // ============================================================
-// INTEGRATION NOTES
+// INTEGRATION NOTES IDEAS
 // ============================================================
 
-function buildNotes(
+function buildIntegrationNotes(
   subjects,
   areas
 ) {
 
   const notes = [
 
-    "Identify which Achievement Standard aspects can genuinely be taught together and which still require explicit subject-specific teaching.",
+    "Selected curriculum knowledge can be developed through a shared unit context, while explicit teaching remains subject-specific where required.",
 
-    "Avoid repeating the same knowledge in separate lessons when it can be authentically revisited through another learning area.",
+    "English can provide opportunities to read, discuss, write and communicate using knowledge developed through the other learning areas.",
 
-    "Keep the cognitive demand of each selected Achievement Standard aspect visible when planning integrated learning experiences.",
+    "Shared Tier 2 vocabulary can be deliberately reinforced across learning areas, while Tier 3 vocabulary remains explicit to each discipline.",
 
-    "Use shared Tier 2 vocabulary across learning areas where appropriate, while retaining Tier 3 disciplinary terminology for precision.",
+    "Where curriculum demands overlap authentically, one learning experience may contribute evidence across learning areas without reducing the expected cognitive demand.",
 
-    "Make sure integrated assessment does not accidentally reduce or combine curriculum evidence that needs to remain distinct."
+    "Some curriculum aspects should remain discrete where students require explicit disciplinary knowledge, processes or techniques.",
+
+    "Learning should be sequenced so students first build the required knowledge and vocabulary before applying it in an integrated product, investigation or performance.",
+
+    "The cognitive verb in each selected Achievement Standard aspect should remain visible when planning teaching and assessment.",
+
+    "Integration should reduce unnecessary repetition, not remove the explicit teaching required for each learning area."
 
   ];
+
+
+  if (
+    subjects.includes("English")
+  ) {
+
+    notes.unshift(
+      "Use the integrated context to provide meaningful knowledge for English reading, viewing, speaking and writing rather than teaching English through an unrelated topic."
+    );
+
+  }
+
+
+  if (
+    subjects.includes("HASS") ||
+    subjects.includes("Science")
+  ) {
+
+    notes.unshift(
+      "Build disciplinary knowledge explicitly in HASS or Science, then revisit and apply that knowledge through other learning experiences."
+    );
+
+  }
 
 
   if (
@@ -1832,18 +2172,7 @@ function buildNotes(
   ) {
 
     notes.push(
-      `Make the contribution of each selected learning area explicit: ${subjects.join(", ")}.`
-    );
-
-  }
-
-
-  if (
-    areas.length
-  ) {
-
-    notes.push(
-      `The selected curriculum currently spans: ${areas.join(", ")}.`
+      `Make the contribution of each learning area explicit: ${subjects.join(", ")}.`
     );
 
   }
@@ -1857,10 +2186,10 @@ function buildNotes(
 
 
 // ============================================================
-// USE THIS SUGGESTION BUTTONS
+// GENERATED SUGGESTION BUTTONS
 // ============================================================
 
-function bindSuggestionActions() {
+function bindGeneratedSuggestionButtons() {
 
   const output =
     document.getElementById(
@@ -1870,7 +2199,7 @@ function bindSuggestionActions() {
 
   if (
     !output ||
-    !output._suggestionData
+    !output._integrationSuggestions
   ) {
 
     return;
@@ -1879,8 +2208,12 @@ function bindSuggestionActions() {
 
 
   const suggestions =
-    output._suggestionData;
+    output._integrationSuggestions;
 
+
+  // ----------------------------------------------------------
+  // USE CONCEPT
+  // ----------------------------------------------------------
 
   output
     .querySelectorAll(
@@ -1906,35 +2239,20 @@ function bindSuggestionActions() {
               ];
 
 
-            if (
-              !concept
-            ) {
-
+            if (!concept) {
               return;
-
             }
 
 
-            const field =
-              document.getElementById(
-                "bigIdea"
-              );
+            const text =
+              `${concept.title} — ${concept.description}`;
 
 
-            if (
-              field
-            ) {
-
-              field.value =
-                concept.text;
-
-
-              updateUnitPlan(
-                "integration.bigIdea",
-                concept.text
-              );
-
-            }
+            populateField(
+              "bigIdea",
+              text,
+              "integration.bigIdea"
+            );
 
           }
         );
@@ -1942,6 +2260,56 @@ function bindSuggestionActions() {
       }
     );
 
+
+  // ----------------------------------------------------------
+  // USE AUTHENTIC CONTEXT
+  // ----------------------------------------------------------
+
+  output
+    .querySelectorAll(
+      "[data-use-context]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const index =
+              Number(
+                button.dataset
+                  .useContext
+              );
+
+
+            const context =
+              suggestions.contexts[
+                index
+              ];
+
+
+            if (!context) {
+              return;
+            }
+
+
+            populateField(
+              "authentic",
+              context,
+              "integration.authenticContext"
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  // ----------------------------------------------------------
+  // ADD INTEGRATION NOTE
+  // ----------------------------------------------------------
 
   output
     .querySelectorAll(
@@ -1967,47 +2335,15 @@ function bindSuggestionActions() {
               ];
 
 
-            if (
-              !note
-            ) {
-
+            if (!note) {
               return;
-
             }
 
 
-            const field =
-              document.getElementById(
-                "integrationNotes"
-              );
-
-
-            if (
-              !field
-            ) {
-
-              return;
-
-            }
-
-
-            const existing =
-              field.value.trim();
-
-
-            const updated =
-              existing
-                ? `${existing}\n• ${note}`
-                : `• ${note}`;
-
-
-            field.value =
-              updated;
-
-
-            updateUnitPlan(
-              "integration.integrationNotes",
-              updated
+            appendToField(
+              "integrationNotes",
+              note,
+              "integration.integrationNotes"
             );
 
           }
@@ -2015,6 +2351,98 @@ function bindSuggestionActions() {
 
       }
     );
+
+}
+
+
+// ============================================================
+// POPULATE FIELD
+// ============================================================
+
+function populateField(
+  elementId,
+  value,
+  statePath
+) {
+
+  const field =
+    document.getElementById(
+      elementId
+    );
+
+
+  if (!field) {
+    return;
+  }
+
+
+  field.value =
+    value;
+
+
+  updateUnitPlan(
+    statePath,
+    value
+  );
+
+}
+
+
+// ============================================================
+// APPEND TO FIELD
+// ============================================================
+
+function appendToField(
+  elementId,
+  value,
+  statePath
+) {
+
+  const field =
+    document.getElementById(
+      elementId
+    );
+
+
+  if (!field) {
+    return;
+  }
+
+
+  const existing =
+    field.value.trim();
+
+
+  // Don't duplicate a note already added.
+
+  if (
+    existing
+      .toLowerCase()
+      .includes(
+        value
+          .toLowerCase()
+      )
+  ) {
+
+    return;
+
+  }
+
+
+  const updated =
+    existing
+      ? `${existing}\n• ${value}`
+      : `• ${value}`;
+
+
+  field.value =
+    updated;
+
+
+  updateUnitPlan(
+    statePath,
+    updated
+  );
 
 }
 
@@ -2078,15 +2506,13 @@ function bindAddConnection() {
 function renderConnections() {
 
   const container =
-    getConnectionContainer();
+    document.getElementById(
+      "integrationConnections"
+    );
 
 
-  if (
-    !container
-  ) {
-
+  if (!container) {
     return;
-
   }
 
 
@@ -2096,9 +2522,7 @@ function renderConnections() {
     [];
 
 
-  if (
-    !connections.length
-  ) {
+  if (!connections.length) {
 
     container.innerHTML = "";
 
@@ -2194,29 +2618,6 @@ function renderConnections() {
 
   bindConnectionEvents(
     container
-  );
-
-}
-
-
-// ============================================================
-// FIND CONNECTION CONTAINER
-// ============================================================
-
-function getConnectionContainer() {
-
-  return (
-    document.getElementById(
-      "integrationConnections"
-    ) ||
-
-    document.getElementById(
-      "confirmedIntegrationConnections"
-    ) ||
-
-    document.getElementById(
-      "connectionsContainer"
-    )
   );
 
 }
@@ -2376,13 +2777,9 @@ function updateConnection(
 
 
   if (
-    !connections[
-      index
-    ]
+    !connections[index]
   ) {
-
     return;
-
   }
 
 
@@ -2471,9 +2868,7 @@ function setValue(
     );
 
 
-  if (
-    element
-  ) {
+  if (element) {
 
     element.value =
       value || "";
