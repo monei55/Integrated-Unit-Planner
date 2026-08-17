@@ -1,128 +1,203 @@
-<section class="panel" id="integrationPage">
+<section class="panel" id="integration">
+
+  <!-- =======================================================
+       STEP 3 HEADER
+       ======================================================= -->
 
   <div class="section-head">
+
     <div>
-      <div class="eyebrow">Step 3</div>
 
-      <h2>Integration</h2>
+      <div class="eyebrow">
+        Step 3
+      </div>
 
-      <p>
-        Identify the meaningful connections between selected learning areas.
-        Integration should strengthen the learning rather than force subjects
-        together or reduce individual curriculum demands.
+      <h2>
+        Integration connections
+      </h2>
+
+      <p class="muted">
+        Identify meaningful connections across the selected
+        Achievement Standard aspects. Use integration only where
+        it strengthens learning and keeps each curriculum demand visible.
       </p>
+
     </div>
 
+
     <button
-      class="suggest"
-      id="integrationSuggest"
       type="button"
+      id="integrationSuggest"
+      class="primary"
     >
-      Suggest integration opportunities
+      Suggest possibilities
     </button>
+
   </div>
 
 
-  <div class="notice">
-    <strong>Integration principle:</strong>
-    Look for shared concepts, knowledge, vocabulary, processes or authentic
-    products. Each learning area should still contribute purposeful learning
-    and identifiable curriculum evidence.
-  </div>
+  <!-- =======================================================
+       MAIN INTEGRATION PLANNING
+       ======================================================= -->
+
+  <div class="grid two">
 
 
-  <h3>Selected curriculum</h3>
-
-  <div
-    id="selectedCurriculumSummary"
-    class="integration-curriculum-summary"
-  ></div>
-
-
-  <h3>Possible curriculum connections</h3>
-
-  <div
-    id="integrationSuggestions"
-    class="suggestion-box"
-  >
-    Select Achievement Standard aspects in Step 2, then use
-    <strong>Suggest integration opportunities</strong>.
-  </div>
-
-
-  <div class="grid two topgap">
+    <!-- SHARED CONCEPT -->
 
     <label>
-      Big idea / conceptual connection
+
+      Shared concept / big idea
 
       <textarea
-        id="integrationBigIdea"
-        rows="4"
-        placeholder="What meaningful idea connects the selected learning areas?"
+        id="bigIdea"
+        rows="5"
+        placeholder="What meaningful concept connects the selected learning areas?"
       ></textarea>
+
+      <span class="helper">
+        Consider concepts such as change, perspective, evidence,
+        communication, identity, sustainability, cause and effect,
+        connections or problem solving.
+      </span>
+
     </label>
 
 
+    <!-- AUTHENTIC CONTEXT -->
+
     <label>
-      Authentic context / purpose
+
+      Authentic context or problem
 
       <textarea
-        id="integrationContext"
-        rows="4"
-        placeholder="What authentic investigation, problem, audience or context could connect the learning?"
+        id="authentic"
+        rows="5"
+        placeholder="What will students investigate, solve, create, communicate or respond to?"
       ></textarea>
+
+      <span class="helper">
+        Use a context that allows the selected learning areas to
+        contribute authentic knowledge, skills and evidence.
+      </span>
+
     </label>
 
 
+    <!-- CURRICULUM VOCABULARY -->
+
     <label>
-      Shared terminology
+
+      Curriculum vocabulary demands
 
       <textarea
-        id="integrationTerminology"
-        rows="4"
-        placeholder="Tier 2, Tier 3 and subject-specific vocabulary that may be developed across the unit"
+        id="terminology"
+        rows="10"
+        placeholder="Vocabulary will be drawn automatically from the selected Achievement Standard aspects and the vocabulary scope and sequence."
       ></textarea>
+
+      <span class="helper">
+        Tier 2 and Tier 3 vocabulary is generated from the curriculum
+        selections in Step 2. Teachers can edit the list and add local,
+        contextual or unit-specific terminology.
+      </span>
+
+
+      <div class="field-actions">
+
+        <button
+          type="button"
+          id="refreshVocabulary"
+          class="secondary"
+        >
+          Refresh curriculum vocabulary
+        </button>
+
+      </div>
+
     </label>
 
 
+    <!-- INTEGRATION NOTES -->
+
     <label>
+
       Integration notes
 
       <textarea
         id="integrationNotes"
-        rows="4"
-        placeholder="What should be integrated? What still needs to be taught discretely?"
+        rows="10"
+        placeholder="Where can learning be genuinely integrated? What still needs explicit subject-specific teaching?"
       ></textarea>
+
+      <span class="helper">
+        Record where curriculum can be taught together and where
+        disciplinary knowledge or assessment evidence needs to remain discrete.
+      </span>
+
     </label>
 
   </div>
 
 
-  <h3>Confirmed integration opportunities</h3>
+  <!-- =======================================================
+       VOCABULARY STATUS
+       ======================================================= -->
 
-  <p class="helper">
-    Add connections that you deliberately intend to use when planning the
-    assessment and teaching sequence. These are teacher decisions rather
-    than automatic curriculum equivalences.
-  </p>
-
-
-  <div id="confirmedConnections"></div>
+  <div
+    id="vocabularyStatus"
+    class="suggestion-box"
+  ></div>
 
 
-  <button
-    class="secondary topgap"
-    id="addConnection"
-    type="button"
-  >
-    + Add integration connection
-  </button>
+  <!-- =======================================================
+       GENERATED INTEGRATION SUGGESTIONS
+       ======================================================= -->
+
+  <div
+    id="integrationSuggestions"
+    class="suggestion-box"
+  ></div>
+
+
+  <!-- =======================================================
+       CONFIRMED INTEGRATION CONNECTIONS
+       ======================================================= -->
+
+  <div class="topgap">
+
+    <div class="section-head">
+
+      <div>
+
+        <h3>
+          Confirmed integration opportunities
+        </h3>
+
+        <p class="muted">
+          Record the connections you intend to use in the unit.
+          These will carry through into the final Unit Plan.
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        id="addIntegrationConnection"
+        class="secondary"
+      >
+        + Add integration connection
+      </button>
+
+    </div>
+
+
+    <div
+      id="integrationConnections"
+      class="stack"
+    ></div>
+
+  </div>
 
 </section>
-<button
-  type="button"
-  id="refreshVocabulary"
-  class="secondary"
->
-  Refresh curriculum vocabulary
-</button>

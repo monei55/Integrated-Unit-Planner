@@ -1,13 +1,16 @@
 import {
-  unitPlan
+  unitPlan,
+  updateUnitPlan
 } from "./state.js";
 
+import {
+  getSelectedCurriculumRows
+} from "./curriculum.js";
 
 import {
   getVocabularyForArea,
   uniqueWords,
-  vocabularyLevelFor,
-  normaliseYearNumber
+  vocabularyLevelFor
 } from "./vocabulary-data.js";
 
 
@@ -17,49 +20,56 @@ import {
 
 export function initIntegrationPage() {
 
-  initialiseIntegrationState();
+  ensureIntegrationState();
+
+  loadSavedIntegration();
 
   bindIntegrationFields();
 
-  renderStoredIntegration();
+  bindVocabularyRefresh();
 
-  bindSuggestionButton();
+  bindSuggestPossibilities();
 
-  bindVocabularyRefreshButton();
+  bindAddConnection();
 
-  bindAddConnectionButton();
+  bindSuggestionActions();
 
-  renderIntegrationConnections();
+  renderConnections();
 
-  refreshCurriculumVocabulary();
+  buildCurriculumVocabulary();
 
 }
 
 
 // ============================================================
-// INITIALISE INTEGRATION STATE
+// ENSURE STATE EXISTS
 // ============================================================
 
-function initialiseIntegrationState() {
+function ensureIntegrationState() {
 
   if (
     !unitPlan.integration ||
-    typeof unitPlan.integration !==
-      "object"
+    typeof unitPlan.integration !== "object"
   ) {
 
-    unitPlan.integration = {};
+    updateUnitPlan(
+      "integration",
+      {}
+    );
 
   }
 
 
   if (
     !Array.isArray(
-      unitPlan.integration.connections
+      unitPlan.integration?.connections
     )
   ) {
 
-    unitPlan.integration.connections = [];
+    updateUnitPlan(
+      "integration.connections",
+      []
+    );
 
   }
 
@@ -67,59 +77,127 @@ function initialiseIntegrationState() {
 
 
 // ============================================================
-// BIND MAIN INTEGRATION FIELDS
+// LOAD SAVED INFORMATION
 // ============================================================
 
-function bindIntegrationFields() {
+function loadSavedIntegration() {
 
-  bindField(
+  const integration =
+    unitPlan.integration || {};
+
+
+  setValue(
     "bigIdea",
-    "bigIdea"
+    integration.bigIdea ||
+    integration.sharedConcept ||
+    ""
   );
 
 
-  bindField(
+  setValue(
     "authentic",
-    "authenticContext"
+    integration.authenticContext ||
+    integration.authentic ||
+    ""
   );
 
 
-  bindField(
+  setValue(
     "terminology",
-    "terminology",
-    {
-      trackVocabularyEdit:
-        true
-    }
+    integration.terminology ||
+    integration.keyTerminology ||
+    ""
   );
 
 
-  bindField(
+  setValue(
     "integrationNotes",
-    "integrationNotes"
+    integration.integrationNotes ||
+    integration.notes ||
+    ""
   );
 
 }
 
 
 // ============================================================
-// GENERIC FIELD BINDING
+// BIND MAIN FIELDS
 // ============================================================
 
-function bindField(
-  id,
-  stateKey,
-  options = {}
+function bindIntegrationFields() {
+
+  bindTextField(
+    "bigIdea",
+    "integration.bigIdea"
+  );
+
+
+  bindTextField(
+    "authentic",
+    "integration.authenticContext"
+  );
+
+
+  bindTextField(
+    "integrationNotes",
+    "integration.integrationNotes"
+  );
+
+
+  const terminology =
+    document.getElementById(
+      "terminology"
+    );
+
+
+  if (
+    terminology
+  ) {
+
+    terminology.addEventListener(
+      "input",
+      () => {
+
+        updateUnitPlan(
+          "integration.terminology",
+          terminology.value
+        );
+
+
+        updateUnitPlan(
+          "integration.vocabularyEditedByTeacher",
+          true
+        );
+
+      }
+    );
+
+  }
+
+}
+
+
+// ============================================================
+// GENERIC TEXT FIELD
+// ============================================================
+
+function bindTextField(
+  elementId,
+  statePath
 ) {
 
   const element =
     document.getElementById(
-      id
+      elementId
     );
 
 
-  if (!element) {
+  if (
+    !element
+  ) {
+
     return;
+
   }
 
 
@@ -127,71 +205,12 @@ function bindField(
     "input",
     () => {
 
-      unitPlan.integration[
-        stateKey
-      ] =
-        element.value;
-
-
-      if (
-        options.trackVocabularyEdit
-      ) {
-
-        unitPlan.integration
-          .vocabularyEditedByTeacher =
-            true;
-
-      }
+      updateUnitPlan(
+        statePath,
+        element.value
+      );
 
     }
-  );
-
-}
-
-
-// ============================================================
-// RESTORE EXISTING VALUES
-// ============================================================
-
-function renderStoredIntegration() {
-
-  setFieldValue(
-    "bigIdea",
-    unitPlan.integration
-      .bigIdea ||
-    unitPlan.integration
-      .sharedConcept ||
-    ""
-  );
-
-
-  setFieldValue(
-    "authentic",
-    unitPlan.integration
-      .authenticContext ||
-    unitPlan.integration
-      .authentic ||
-    ""
-  );
-
-
-  setFieldValue(
-    "terminology",
-    unitPlan.integration
-      .terminology ||
-    unitPlan.integration
-      .keyTerminology ||
-    ""
-  );
-
-
-  setFieldValue(
-    "integrationNotes",
-    unitPlan.integration
-      .integrationNotes ||
-    unitPlan.integration
-      .notes ||
-    ""
   );
 
 }
@@ -201,18 +220,22 @@ function renderStoredIntegration() {
 // AUTOMATIC CURRICULUM VOCABULARY
 // ============================================================
 
-function refreshCurriculumVocabulary(
+function buildCurriculumVocabulary(
   force = false
 ) {
 
-  const textarea =
+  const field =
     document.getElementById(
       "terminology"
     );
 
 
-  if (!textarea) {
+  if (
+    !field
+  ) {
+
     return;
+
   }
 
 
@@ -220,16 +243,23 @@ function refreshCurriculumVocabulary(
     getSelectedCurriculumRows();
 
 
-  if (!rows.length) {
+  if (
+    !rows.length
+  ) {
 
     if (
-      !textarea.value.trim()
+      !field.value.trim()
     ) {
 
-      textarea.placeholder =
+      field.placeholder =
         "Select Achievement Standard aspects in Step 2 to automatically build the curriculum vocabulary demands.";
 
     }
+
+
+    showVocabularyMessage(
+      "Select Achievement Standard aspects in Step 2 and the matching vocabulary will appear here."
+    );
 
 
     return;
@@ -238,46 +268,44 @@ function refreshCurriculumVocabulary(
 
 
   const signature =
-    buildCurriculumSignature(
+    curriculumSignature(
       rows
     );
 
 
-  const lastSignature =
+  const previousSignature =
     unitPlan.integration
-      .vocabularySignature ||
+      ?.vocabularySignature ||
     "";
 
 
   const teacherEdited =
     Boolean(
       unitPlan.integration
-        .vocabularyEditedByTeacher
+        ?.vocabularyEditedByTeacher
     );
 
 
-  const currentlyEmpty =
-    !textarea.value.trim();
+  const fieldEmpty =
+    !field.value.trim();
 
 
   const curriculumChanged =
     signature !==
-    lastSignature;
+    previousSignature;
 
 
-  // ==========================================================
-  // POPULATE WHEN:
-  //
-  // 1. the field is empty
-  // 2. curriculum has changed and teacher has not edited it
-  // 3. teacher deliberately presses Refresh vocabulary
-  //
-  // Never silently overwrite teacher-entered vocabulary.
-  // ==========================================================
+  // ----------------------------------------------------------
+  // Automatically build:
+  // - first visit
+  // - empty field
+  // - curriculum changed and teacher has not edited
+  // - teacher deliberately presses Refresh
+  // ----------------------------------------------------------
 
-  const shouldGenerate =
+  const shouldBuild =
     force ||
-    currentlyEmpty ||
+    fieldEmpty ||
     (
       curriculumChanged &&
       !teacherEdited
@@ -285,81 +313,84 @@ function refreshCurriculumVocabulary(
 
 
   if (
-    !shouldGenerate
+    !shouldBuild
   ) {
 
-    updateVocabularyStatus(
-      rows,
-      false
+    showVocabularyMessage(
+      "The Step 2 curriculum has changed, but your vocabulary contains teacher edits. Use Refresh curriculum vocabulary if you want to rebuild it."
     );
+
 
     return;
 
   }
 
 
-  const vocabularyPlan =
-    buildVocabularyPlan(
+  const plan =
+    createVocabularyPlan(
       rows
     );
 
 
-  const formatted =
+  const text =
     formatVocabularyPlan(
-      vocabularyPlan
+      plan
     );
 
 
-  textarea.value =
-    formatted;
+  field.value =
+    text;
 
 
-  unitPlan.integration
-    .terminology =
-      formatted;
+  updateUnitPlan(
+    "integration.terminology",
+    text
+  );
 
 
-  unitPlan.integration
-    .vocabularySignature =
-      signature;
+  updateUnitPlan(
+    "integration.vocabularyPlan",
+    plan
+  );
 
 
-  unitPlan.integration
-    .vocabularyEditedByTeacher =
-      false;
+  updateUnitPlan(
+    "integration.vocabularySignature",
+    signature
+  );
 
 
-  unitPlan.integration
-    .vocabularyPlan =
-      vocabularyPlan;
+  updateUnitPlan(
+    "integration.vocabularyEditedByTeacher",
+    false
+  );
 
 
-  updateVocabularyStatus(
-    rows,
-    true
+  showVocabularyMessage(
+    "Tier 2 and Tier 3 vocabulary has been drawn automatically from the vocabulary scope and sequence using the Achievement Standard aspects selected in Step 2."
   );
 
 }
 
 
 // ============================================================
-// BUILD VOCABULARY PLAN
+// CREATE VOCABULARY PLAN
 // ============================================================
 
-function buildVocabularyPlan(
+function createVocabularyPlan(
   rows
 ) {
 
-  const groups =
-    groupSelectedRows(
+  const grouped =
+    groupCurriculumRows(
       rows
     );
 
 
-  const results = [];
+  const result = [];
 
 
-  groups.forEach(
+  grouped.forEach(
     (group) => {
 
       const vocabulary =
@@ -370,39 +401,9 @@ function buildVocabularyPlan(
         );
 
 
-      const aspectText =
-        group.rows
-          .map(
-            (row) =>
-              row.text ||
-              row.statement ||
-              row.description ||
-              ""
-          )
-          .join(
-            " "
-          );
-
-
-      const tier2 =
-        prioritiseVocabulary(
-          vocabulary.tier2,
-          aspectText,
-          10
-        );
-
-
-      const tier3 =
-        prioritiseVocabulary(
-          vocabulary.tier3,
-          aspectText,
-          10
-        );
-
-
       if (
-        !tier2.length &&
-        !tier3.length
+        !vocabulary.tier2?.length &&
+        !vocabulary.tier3?.length
       ) {
 
         return;
@@ -410,7 +411,18 @@ function buildVocabularyPlan(
       }
 
 
-      results.push({
+      const achievementText =
+        group.rows
+          .map(
+            (row) =>
+              row.text || ""
+          )
+          .join(
+            " "
+          );
+
+
+      result.push({
 
         subject:
           group.subject,
@@ -425,18 +437,23 @@ function buildVocabularyPlan(
           ),
 
         area:
-          group.area,
+          displayVocabularyArea(
+            group.subject,
+            group.area
+          ),
 
-        tier2,
+        tier2:
+          prioritiseWords(
+            vocabulary.tier2,
+            achievementText,
+            10
+          ),
 
-        tier3,
-
-        aspects:
-          group.rows.map(
-            (row) =>
-              row.text ||
-              row.statement ||
-              ""
+        tier3:
+          prioritiseWords(
+            vocabulary.tier3,
+            achievementText,
+            10
           )
 
       });
@@ -445,25 +462,21 @@ function buildVocabularyPlan(
   );
 
 
-  return results;
+  return result;
 
 }
 
 
 // ============================================================
-// GROUP SELECTED ASPECTS
+// GROUP SELECTED CURRICULUM
 // ============================================================
 
-function groupSelectedRows(
+function groupCurriculumRows(
   rows
 ) {
 
   const groups =
     new Map();
-
-
-  const selectedYears =
-    getSelectedYearLevels();
 
 
   rows.forEach(
@@ -475,68 +488,68 @@ function groupSelectedRows(
         "";
 
 
-      if (!subject) {
-        return;
-      }
+      const grade =
+        row.grade ||
+        row.yearLevel ||
+        "";
 
 
       const area =
-        curriculumArea(
+        row.area ||
+        inferAreaFromText(
           row
         );
 
 
-      const relevantYears =
-        getRelevantYearsForRow(
-          row,
-          selectedYears
+      if (
+        !subject ||
+        !grade
+      ) {
+
+        return;
+
+      }
+
+
+      const key =
+        [
+          subject,
+          grade,
+          area
+        ]
+          .join(
+            "|||"
+          );
+
+
+      if (
+        !groups.has(
+          key
+        )
+      ) {
+
+        groups.set(
+          key,
+          {
+            subject,
+            yearLevel:
+              grade,
+            area,
+            rows: []
+          }
         );
 
-
-      relevantYears.forEach(
-        (yearLevel) => {
-
-          const key =
-            [
-              subject,
-              yearLevel,
-              area
-            ]
-              .join(
-                "|||"
-              );
+      }
 
 
-          if (
-            !groups.has(
-              key
-            )
-          ) {
-
-            groups.set(
-              key,
-              {
-                subject,
-                yearLevel,
-                area,
-                rows: []
-              }
-            );
-
-          }
-
-
-          groups
-            .get(
-              key
-            )
-            .rows
-            .push(
-              row
-            );
-
-        }
-      );
+      groups
+        .get(
+          key
+        )
+        .rows
+        .push(
+          row
+        );
 
     }
   );
@@ -550,219 +563,71 @@ function groupSelectedRows(
 
 
 // ============================================================
-// RELEVANT YEAR LEVELS
+// DISPLAY AREA
 // ============================================================
 
-function getRelevantYearsForRow(
-  row,
-  selectedYears
+function displayVocabularyArea(
+  subject,
+  area
 ) {
 
-  if (
-    !selectedYears.length
-  ) {
-
-    return [
-      row.grade ||
-      row.yearLevel ||
-      "Prep"
-    ];
-
-  }
-
-
-  const rowGrade =
+  const text =
     String(
-      row.grade ||
-      row.yearLevel ||
+      area ||
       ""
     );
 
 
-  const rowNumbers =
-    extractYearNumbers(
-      rowGrade
-    );
-
-
-  // ----------------------------------------------------------
-  // PREP / FOUNDATION
-  // ----------------------------------------------------------
+  // Make the teacher-facing heading cleaner if curriculum
+  // area contains sublabels such as:
+  // "Knowledge & Understanding — Data"
 
   if (
-    /prep|foundation/i.test(
-      rowGrade
-    )
+    subject ===
+      "Digital Technologies" ||
+    subject ===
+      "Design and Technologies"
   ) {
 
-    const prep =
-      selectedYears.filter(
-        (year) =>
-          normaliseYearNumber(
-            year
-          ) ===
-          0
-      );
-
-
-    return prep.length
-      ? prep
-      : ["Prep"];
-
-  }
-
-
-  // ----------------------------------------------------------
-  // BAND — e.g. Years 3–4
-  // ----------------------------------------------------------
-
-  if (
-    rowNumbers.length >=
-    2
-  ) {
-
-    const min =
-      Math.min(
-        ...rowNumbers
-      );
-
-
-    const max =
-      Math.max(
-        ...rowNumbers
-      );
-
-
-    const matches =
-      selectedYears.filter(
-        (year) => {
-
-          const number =
-            normaliseYearNumber(
-              year
-            );
-
-
-          return (
-            number >= min &&
-            number <= max
-          );
-
-        }
-      );
-
-
-    return matches.length
-      ? matches
-      : [
-          `Year ${max}`
-        ];
-
-  }
-
-
-  // ----------------------------------------------------------
-  // SINGLE YEAR
-  // ----------------------------------------------------------
-
-  if (
-    rowNumbers.length ===
-    1
-  ) {
-
-    const number =
-      rowNumbers[0];
-
-
-    const matches =
-      selectedYears.filter(
-        (year) =>
-          normaliseYearNumber(
-            year
-          ) ===
-          number
-      );
-
-
-    return matches.length
-      ? matches
-      : [
-          `Year ${number}`
-        ];
-
-  }
-
-
-  return selectedYears;
-
-}
-
-
-// ============================================================
-// EXTRACT YEAR NUMBERS
-// ============================================================
-
-function extractYearNumbers(
-  value
-) {
-
-  const matches =
-    String(
-      value ||
-      ""
-    )
-      .match(
-        /\d+/g
-      );
-
-
-  return matches
-    ? matches.map(
-        Number
+    if (
+      /algorithm|privacy|security|data/i.test(
+        text
       )
-    : [];
+    ) {
+
+      return text;
+
+    }
+
+  }
+
+
+  return text;
 
 }
 
 
 // ============================================================
-// CURRICULUM AREA CLASSIFICATION
+// FALLBACK AREA INFERENCE
+//
+// Most curriculum rows already contain row.area.
+// This is only used if one does not.
 // ============================================================
 
-function curriculumArea(
+function inferAreaFromText(
   row
 ) {
 
-  if (
-    row.area
-  ) {
-
-    return normaliseAreaName(
-      row.subject,
-      row.area
-    );
-
-  }
+  const subject =
+    row.subject || "";
 
 
   const text =
     String(
-      row.text ||
-      row.statement ||
-      ""
+      row.text || ""
     )
       .toLowerCase();
 
-
-  const subject =
-    row.subject ||
-    row.learningArea ||
-    "";
-
-
-  // ==========================================================
-  // ENGLISH
-  // ==========================================================
 
   if (
     subject ===
@@ -770,7 +635,7 @@ function curriculumArea(
   ) {
 
     if (
-      /literary|literature|character|setting|plot|poem|poetry|narrative|author|illustrator/.test(
+      /character|setting|plot|literary|literature|poem|narrative/.test(
         text
       )
     ) {
@@ -781,7 +646,7 @@ function curriculumArea(
 
 
     if (
-      /read|view|comprehend|write|create text|spoken|listen|speaking|interact|oral|audience|purpose/.test(
+      /read|view|comprehend|create|write|speak|listen|audience/.test(
         text
       )
     ) {
@@ -796,17 +661,13 @@ function curriculumArea(
   }
 
 
-  // ==========================================================
-  // MATHEMATICS
-  // ==========================================================
-
   if (
     subject ===
     "Mathematics"
   ) {
 
     if (
-      /probab|chance|likelihood/.test(
+      /chance|probab|likelihood/.test(
         text
       )
     ) {
@@ -817,7 +678,7 @@ function curriculumArea(
 
 
     if (
-      /statistic|data|survey|graph|chart|distribution/.test(
+      /data|statistic|graph|distribution/.test(
         text
       )
     ) {
@@ -828,7 +689,7 @@ function curriculumArea(
 
 
     if (
-      /shape|space|location|position|angle|symmetr|transform|grid|coordinate/.test(
+      /shape|angle|position|location|transform|symmetry/.test(
         text
       )
     ) {
@@ -839,7 +700,7 @@ function curriculumArea(
 
 
     if (
-      /measure|length|mass|capacity|area|perimeter|time|duration|temperature|volume/.test(
+      /measure|length|mass|capacity|area|perimeter|time|volume/.test(
         text
       )
     ) {
@@ -850,7 +711,7 @@ function curriculumArea(
 
 
     if (
-      /pattern|algebra|equival|variable|unknown|algorithm|equation/.test(
+      /pattern|rule|equation|unknown|variable|equival/.test(
         text
       )
     ) {
@@ -865,17 +726,13 @@ function curriculumArea(
   }
 
 
-  // ==========================================================
-  // SCIENCE
-  // ==========================================================
-
   if (
     subject ===
     "Science"
   ) {
 
     if (
-      /living|life cycle|habitat|plant|animal|ecosystem|survival|biological|organism|adapt/.test(
+      /living|organism|habitat|life cycle|survival|adapt/.test(
         text
       )
     ) {
@@ -886,7 +743,7 @@ function curriculumArea(
 
 
     if (
-      /material|solid|liquid|gas|state|mixture|property|chemical/.test(
+      /material|solid|liquid|gas|chemical|property/.test(
         text
       )
     ) {
@@ -897,18 +754,7 @@ function curriculumArea(
 
 
     if (
-      /force|motion|energy|heat|light|sound|electric|physical/.test(
-        text
-      )
-    ) {
-
-      return "Physical Sciences";
-
-    }
-
-
-    if (
-      /earth|space|sun|moon|planet|weather|season|landscape|geolog/.test(
+      /earth|sun|moon|space|weather|planet/.test(
         text
       )
     ) {
@@ -919,12 +765,12 @@ function curriculumArea(
 
 
     if (
-      /question|investigat|observe|measure|data|evidence|predict|conclusion|communicat|represent|fair test|variable/.test(
+      /force|energy|heat|light|electric/.test(
         text
       )
     ) {
 
-      return "Science Inquiry";
+      return "Physical Sciences";
 
     }
 
@@ -934,17 +780,13 @@ function curriculumArea(
   }
 
 
-  // ==========================================================
-  // HASS
-  // ==========================================================
-
   if (
     subject ===
     "HASS"
   ) {
 
     if (
-      /history|histor|past|present|continuity|change|significance|commemor|first fleet|colon|migration/.test(
+      /past|history|historical|change|significance|chronolog/.test(
         text
       )
     ) {
@@ -955,7 +797,7 @@ function curriculumArea(
 
 
     if (
-      /geograph|place|environment|location|map|spatial|climate|natural|sustainab|distribution/.test(
+      /place|geograph|environment|map|location|climate/.test(
         text
       )
     ) {
@@ -966,7 +808,7 @@ function curriculumArea(
 
 
     if (
-      /civic|citizen|government|democra|law|rule|decision-making|community participation/.test(
+      /citizen|democracy|government|law|rule/.test(
         text
       )
     ) {
@@ -977,7 +819,7 @@ function curriculumArea(
 
 
     if (
-      /economic|business|consumer|producer|resource|scarcity|needs and wants|financial/.test(
+      /economic|consumer|producer|scarcity|financial/.test(
         text
       )
     ) {
@@ -992,17 +834,13 @@ function curriculumArea(
   }
 
 
-  // ==========================================================
-  // HPE
-  // ==========================================================
-
   if (
     subject ===
     "HPE"
   ) {
 
     if (
-      /movement|physical|motor|game|sport|fitness|active|locomotor|skill/.test(
+      /movement|physical|fitness|game|skill/.test(
         text
       )
     ) {
@@ -1013,7 +851,7 @@ function curriculumArea(
 
 
     if (
-      /relationship|consent|boundary|respect|safe|safety|protect|help-seeking/.test(
+      /relationship|safe|safety|consent|protect/.test(
         text
       )
     ) {
@@ -1023,280 +861,12 @@ function curriculumArea(
     }
 
 
-    if (
-      /analyse|evaluate|apply|decision|message|information|strategy|reflect/.test(
-        text
-      )
-    ) {
-
-      return "Health & Wellbeing Skills";
-
-    }
-
-
     return "Personal, Social & Community Health";
 
   }
 
 
-  // ==========================================================
-  // DESIGN AND TECHNOLOGIES
-  // ==========================================================
-
-  if (
-    subject ===
-    "Design and Technologies"
-  ) {
-
-    if (
-      /design|create|produce|evaluate|plan|process|communicate|criteria/.test(
-        text
-      )
-    ) {
-
-      return "Processes & Production Skills";
-
-    }
-
-
-    return "Design & Technologies";
-
-  }
-
-
-  // ==========================================================
-  // DIGITAL TECHNOLOGIES
-  // ==========================================================
-
-  if (
-    subject ===
-    "Digital Technologies"
-  ) {
-
-    if (
-      /algorithm|branch|iteration|data|privacy|security|personal information|debug|represent/.test(
-        text
-      )
-    ) {
-
-      return "Digital Skills & Safety";
-
-    }
-
-
-    return "Digital Technologies";
-
-  }
-
-
-  // ==========================================================
-  // THE ARTS
-  // ==========================================================
-
-  if (
-    [
-      "Dance",
-      "Drama",
-      "Media Arts",
-      "Music",
-      "Visual Arts"
-    ]
-      .includes(
-        subject
-      )
-  ) {
-
-    return subject;
-
-  }
-
-
-  return (
-    row.area ||
-    "Achievement Standard"
-  );
-
-}
-
-
-// ============================================================
-// NORMALISE EXISTING AREA LABELS
-// ============================================================
-
-function normaliseAreaName(
-  subject,
-  area
-) {
-
-  const text =
-    String(
-      area ||
-      ""
-    )
-      .toLowerCase();
-
-
-  // ----------------------------------------------------------
-  // English
-  // ----------------------------------------------------------
-
-  if (
-    subject ===
-    "English"
-  ) {
-
-    if (
-      /literature/.test(
-        text
-      )
-    ) {
-
-      return "Literature";
-
-    }
-
-
-    if (
-      /reading|viewing|writing|creating|speaking|listening|literacy/.test(
-        text
-      )
-    ) {
-
-      return "Literacy";
-
-    }
-
-
-    return "Language";
-
-  }
-
-
-  // ----------------------------------------------------------
-  // Science
-  // ----------------------------------------------------------
-
-  if (
-    subject ===
-    "Science"
-  ) {
-
-    if (
-      /life|living|biological/.test(
-        text
-      )
-    ) {
-
-      return "Biological Sciences";
-
-    }
-
-
-    if (
-      /material|chemical/.test(
-        text
-      )
-    ) {
-
-      return "Chemical Sciences";
-
-    }
-
-
-    if (
-      /physical/.test(
-        text
-      )
-    ) {
-
-      return "Physical Sciences";
-
-    }
-
-
-    if (
-      /earth|space/.test(
-        text
-      )
-    ) {
-
-      return "Earth & Space Sciences";
-
-    }
-
-
-    if (
-      /inquiry/.test(
-        text
-      )
-    ) {
-
-      return "Science Inquiry";
-
-    }
-
-  }
-
-
-  // ----------------------------------------------------------
-  // HASS
-  // ----------------------------------------------------------
-
-  if (
-    subject ===
-    "HASS"
-  ) {
-
-    if (
-      /history/.test(
-        text
-      )
-    ) {
-
-      return "History";
-
-    }
-
-
-    if (
-      /geograph/.test(
-        text
-      )
-    ) {
-
-      return "Geography";
-
-    }
-
-
-    if (
-      /civic/.test(
-        text
-      )
-    ) {
-
-      return "Civics & Citizenship";
-
-    }
-
-
-    if (
-      /economic|business/.test(
-        text
-      )
-    ) {
-
-      return "Economics & Business";
-
-    }
-
-
-    return "HASS Skills";
-
-  }
-
-
-  return area;
+  return subject;
 
 }
 
@@ -1305,21 +875,21 @@ function normaliseAreaName(
 // PRIORITISE VOCABULARY
 // ============================================================
 
-function prioritiseVocabulary(
+function prioritiseWords(
   words,
-  aspectText,
-  maximum
+  achievementText,
+  maximum = 10
 ) {
 
   const text =
-    normaliseSearchText(
-      aspectText
+    normaliseText(
+      achievementText
     );
 
 
-  const scored =
+  const ranked =
     uniqueWords(
-      words
+      words || []
     )
       .map(
         (
@@ -1331,13 +901,13 @@ function prioritiseVocabulary(
 
             word,
 
+            index,
+
             score:
-              vocabularyRelevanceScore(
+              wordScore(
                 word,
                 text
-              ),
-
-            index
+              )
 
           };
 
@@ -1345,7 +915,7 @@ function prioritiseVocabulary(
       );
 
 
-  scored.sort(
+  ranked.sort(
     (
       a,
       b
@@ -1373,7 +943,7 @@ function prioritiseVocabulary(
   );
 
 
-  return scored
+  return ranked
     .slice(
       0,
       maximum
@@ -1387,21 +957,23 @@ function prioritiseVocabulary(
 
 
 // ============================================================
-// VOCABULARY RELEVANCE
+// WORD RELEVANCE SCORE
 // ============================================================
 
-function vocabularyRelevanceScore(
+function wordScore(
   word,
-  normalisedAspectText
+  achievementText
 ) {
 
-  const normalisedWord =
-    normaliseSearchText(
+  const target =
+    normaliseText(
       word
     );
 
 
-  if (!normalisedWord) {
+  if (
+    !target
+  ) {
 
     return 0;
 
@@ -1411,93 +983,45 @@ function vocabularyRelevanceScore(
   let score = 0;
 
 
-  // ----------------------------------------------------------
-  // Exact word / phrase in Achievement Standard
-  // ----------------------------------------------------------
-
   if (
-    normalisedAspectText.includes(
-      normalisedWord
+    achievementText.includes(
+      target
     )
   ) {
 
     score +=
-      normalisedWord.includes(
+      target.includes(
         " "
       )
-        ? 12
-        : 10;
+        ? 15
+        : 12;
 
   }
 
 
-  // ----------------------------------------------------------
-  // Partial phrase matches
-  // ----------------------------------------------------------
+  target
+    .split(
+      " "
+    )
+    .filter(
+      (part) =>
+        part.length >= 4
+    )
+    .forEach(
+      (part) => {
 
-  const parts =
-    normalisedWord
-      .split(
-        " "
-      )
-      .filter(
-        (part) =>
-          part.length >=
-          4
-      );
+        if (
+          achievementText.includes(
+            part
+          )
+        ) {
 
+          score += 3;
 
-  parts.forEach(
-    (part) => {
-
-      if (
-        normalisedAspectText.includes(
-          part
-        )
-      ) {
-
-        score += 3;
+        }
 
       }
-
-    }
-  );
-
-
-  // ----------------------------------------------------------
-  // High-value cognitive language
-  // ----------------------------------------------------------
-
-  const academicWords = [
-    "identify",
-    "describe",
-    "explain",
-    "compare",
-    "interpret",
-    "analyse",
-    "evaluate",
-    "justify",
-    "represent",
-    "create",
-    "communicate",
-    "investigate",
-    "evidence",
-    "perspective",
-    "purpose",
-    "audience",
-    "effect"
-  ];
-
-
-  if (
-    academicWords.includes(
-      normalisedWord
-    )
-  ) {
-
-    score += 1;
-
-  }
+    );
 
 
   return score;
@@ -1506,33 +1030,7 @@ function vocabularyRelevanceScore(
 
 
 // ============================================================
-// NORMALISE SEARCH TEXT
-// ============================================================
-
-function normaliseSearchText(
-  value
-) {
-
-  return String(
-    value ||
-    ""
-  )
-    .toLowerCase()
-    .replace(
-      /[^\p{L}\p{N}\s'-]/gu,
-      " "
-    )
-    .replace(
-      /\s+/g,
-      " "
-    )
-    .trim();
-
-}
-
-
-// ============================================================
-// FORMAT VOCABULARY FOR TEXTAREA
+// FORMAT VOCABULARY
 // ============================================================
 
 function formatVocabularyPlan(
@@ -1540,14 +1038,10 @@ function formatVocabularyPlan(
 ) {
 
   if (
-    !Array.isArray(
-      plan
-    ) ||
     !plan.length
   ) {
 
     return "";
-
   }
 
 
@@ -1608,628 +1102,296 @@ function formatVocabularyPlan(
 
 
 // ============================================================
-// GET SELECTED CURRICULUM ROWS
+// REFRESH VOCABULARY BUTTON
 // ============================================================
 
-function getSelectedCurriculumRows() {
+function bindVocabularyRefresh() {
 
-  const candidates = [
-
-    unitPlan.curriculum
-      ?.selectedRows,
-
-    unitPlan.curriculum
-      ?.rows,
-
-    unitPlan.curriculum
-      ?.selected,
-
-    unitPlan.selectedCurriculumRows,
-
-    unitPlan.curriculumRows
-
-  ];
-
-
-  for (
-    const candidate of
-    candidates
-  ) {
-
-    if (
-      Array.isArray(
-        candidate
-      ) &&
-      candidate.length
-    ) {
-
-      return cleanCurriculumRows(
-        candidate
-      );
-
-    }
-
-  }
-
-
-  const found = [];
-
-
-  findCurriculumRowsRecursively(
-    unitPlan.curriculum,
-    found
-  );
-
-
-  return cleanCurriculumRows(
-    found
-  );
-
-}
-
-
-// ============================================================
-// FIND CURRICULUM ROWS RECURSIVELY
-// ============================================================
-
-function findCurriculumRowsRecursively(
-  value,
-  output
-) {
-
-  if (!value) {
-    return;
-  }
-
-
-  if (
-    Array.isArray(
-      value
+  document
+    .getElementById(
+      "refreshVocabulary"
     )
-  ) {
+    ?.addEventListener(
+      "click",
+      () => {
 
-    value.forEach(
-      (item) =>
-        findCurriculumRowsRecursively(
-          item,
-          output
-        )
-    );
-
-    return;
-
-  }
+        updateUnitPlan(
+          "integration.vocabularyEditedByTeacher",
+          false
+        );
 
 
-  if (
-    typeof value !==
-    "object"
-  ) {
-
-    return;
-
-  }
-
-
-  const text =
-    value.text ||
-    value.statement ||
-    value.description;
-
-
-  const looksLikeAspect =
-    Boolean(
-      text &&
-      (
-        value.subject ||
-        value.learningArea
-      ) &&
-      (
-        value.type ===
-          "achievement_standard" ||
-        value.code ||
-        value.selected ===
+        buildCurriculumVocabulary(
           true
-      )
-    );
-
-
-  if (
-    looksLikeAspect
-  ) {
-
-    output.push(
-      value
-    );
-
-  }
-
-
-  Object.values(
-    value
-  )
-    .forEach(
-      (child) =>
-        findCurriculumRowsRecursively(
-          child,
-          output
-        )
-    );
-
-}
-
-
-// ============================================================
-// CLEAN CURRICULUM ROWS
-// ============================================================
-
-function cleanCurriculumRows(
-  rows
-) {
-
-  const map =
-    new Map();
-
-
-  (
-    rows ||
-    []
-  )
-    .forEach(
-      (row) => {
-
-        if (
-          !row ||
-          typeof row !==
-            "object"
-        ) {
-
-          return;
-
-        }
-
-
-        const text =
-          row.text ||
-          row.statement ||
-          row.description ||
-          "";
-
-
-        if (!text) {
-          return;
-        }
-
-
-        const cleaned = {
-
-          ...row,
-
-          subject:
-            row.subject ||
-            row.learningArea ||
-            "",
-
-          grade:
-            row.grade ||
-            row.yearLevel ||
-            "",
-
-          text
-
-        };
-
-
-        const key =
-          cleaned.code ||
-          [
-            cleaned.subject,
-            cleaned.grade,
-            cleaned.text
-          ]
-            .join(
-              "|||"
-            );
-
-
-        if (
-          !map.has(
-            key
-          )
-        ) {
-
-          map.set(
-            key,
-            cleaned
-          );
-
-        }
+        );
 
       }
     );
 
-
-  return [
-    ...map.values()
-  ];
-
 }
 
 
 // ============================================================
-// SELECTED YEAR LEVELS
+// SHOW VOCABULARY MESSAGE
 // ============================================================
 
-function getSelectedYearLevels() {
+function showVocabularyMessage(
+  message
+) {
 
-  const candidates = [
-
-    unitPlan.setup
-      ?.yearLevels,
-
-    unitPlan.setup
-      ?.years,
-
-    unitPlan.years,
-
-    unitPlan.yearLevels
-
-  ];
+  const output =
+    document.getElementById(
+      "vocabularyStatus"
+    );
 
 
-  for (
-    const candidate of
-    candidates
+  if (
+    output
   ) {
 
-    if (
-      Array.isArray(
-        candidate
-      ) &&
-      candidate.length
-    ) {
+    output.innerHTML = `
 
-      return candidate;
+      <strong>
+        Curriculum vocabulary
+      </strong>
 
-    }
+      <p>
+        ${escapeHtml(
+          message
+        )}
+      </p>
+
+    `;
 
   }
 
-
-  return [];
-
 }
 
 
 // ============================================================
-// CURRICULUM SIGNATURE
+// SUGGEST POSSIBILITIES
 // ============================================================
 
-function buildCurriculumSignature(
-  rows
-) {
+function bindSuggestPossibilities() {
 
-  return rows
-    .map(
-      (row) =>
-        row.code ||
-        [
-          row.subject,
-          row.grade,
-          row.text
-        ]
-          .join(
-            "|"
-          )
+  document
+    .getElementById(
+      "integrationSuggest"
     )
-    .sort()
-    .join(
-      "||"
+    ?.addEventListener(
+      "click",
+      showIntegrationSuggestions
     );
 
 }
 
 
 // ============================================================
-// VOCABULARY STATUS MESSAGE
+// SHOW INTEGRATION SUGGESTIONS
 // ============================================================
 
-function updateVocabularyStatus(
-  rows,
-  regenerated
-) {
+function showIntegrationSuggestions() {
 
-  const box =
+  const rows =
+    getSelectedCurriculumRows();
+
+
+  const output =
     document.getElementById(
       "integrationSuggestions"
     );
 
 
-  if (!box) {
+  if (
+    !output
+  ) {
+
     return;
+
   }
-
-
-  const subjects =
-    uniqueWords(
-      rows.map(
-        (row) =>
-          row.subject
-      )
-    );
 
 
   if (
-    regenerated
+    rows.length <
+    2
   ) {
 
-    box.innerHTML = `
+    output.innerHTML = `
 
-      <strong>
-        Curriculum vocabulary updated
-      </strong>
+      <div class="empty">
 
-      <br><br>
+        Select at least two Achievement Standard aspects
+        in Step 2 before generating integration
+        suggestions.
 
-      Tier 2 and Tier 3 vocabulary has been drawn from the
-      vocabulary scope and sequence for the selected
-      Achievement Standard aspects in
-      ${escapeHtml(
-        subjects.join(
-          ", "
-        )
-      )}.
-
-      <br><br>
-
-      <span class="helper">
-        The vocabulary remains editable. Add local,
-        contextual or unit-specific terminology where
-        required.
-      </span>
+      </div>
 
     `;
 
-  } else {
 
-    box.innerHTML = `
-
-      <strong>
-        Curriculum vocabulary available
-      </strong>
-
-      <br><br>
-
-      Step 2 curriculum selections have changed, but the
-      terminology field contains teacher edits.
-
-      <br><br>
-
-      <span class="helper">
-        Use Refresh curriculum vocabulary if you want to
-        rebuild it from the selected Achievement Standard
-        aspects.
-      </span>
-
-    `;
+    return;
 
   }
 
-}
 
-
-// ============================================================
-// REFRESH VOCABULARY BUTTON
-// ============================================================
-
-function bindVocabularyRefreshButton() {
-
-  const button =
-    document.getElementById(
-      "refreshVocabulary"
+  const suggestions =
+    createIntegrationSuggestions(
+      rows
     );
 
 
-  if (!button) {
-    return;
-  }
+  output.innerHTML = `
+
+    <div class="integration-suggestion-group">
+
+      <h3>
+        Possible conceptual connections
+      </h3>
+
+      <p class="helper">
+        Choose a conceptual lens that genuinely connects
+        the selected curriculum.
+      </p>
 
 
-  button.addEventListener(
-    "click",
-    () => {
+      <div class="integration-suggestion-list">
 
-      unitPlan.integration
-        .vocabularyEditedByTeacher =
-          false;
+        ${
+          suggestions.concepts
+            .map(
+              (
+                suggestion,
+                index
+              ) => `
+
+                <article class="integration-suggestion-card">
+
+                  <p>
+                    ${escapeHtml(
+                      suggestion.text
+                    )}
+                  </p>
+
+                  <button
+                    type="button"
+                    class="integration-use-button"
+                    data-use-concept="${index}"
+                  >
+                    Use this concept
+                  </button>
+
+                </article>
+
+              `
+            )
+            .join("")
+        }
+
+      </div>
+
+    </div>
 
 
-      refreshCurriculumVocabulary(
-        true
-      );
+    <div class="integration-suggestion-group">
 
-    }
-  );
+      <h3>
+        Possible authentic integration opportunities
+      </h3>
+
+      <ul class="integration-suggestion-bullets">
+
+        ${
+          suggestions.opportunities
+            .map(
+              (item) => `
+
+                <li>
+                  ${escapeHtml(
+                    item
+                  )}
+                </li>
+
+              `
+            )
+            .join("")
+        }
+
+      </ul>
+
+    </div>
+
+
+    <div class="integration-suggestion-group">
+
+      <h3>
+        Possible integration notes
+      </h3>
+
+
+      <div class="integration-suggestion-list">
+
+        ${
+          suggestions.notes
+            .map(
+              (
+                note,
+                index
+              ) => `
+
+                <article class="integration-suggestion-card">
+
+                  <p>
+                    ${escapeHtml(
+                      note
+                    )}
+                  </p>
+
+                  <button
+                    type="button"
+                    class="integration-use-button"
+                    data-use-note="${index}"
+                  >
+                    Add to integration notes
+                  </button>
+
+                </article>
+
+              `
+            )
+            .join("")
+        }
+
+      </div>
+
+    </div>
+
+
+    <p class="helper integration-caution">
+
+      These are planning prompts, not prescribed
+      connections. Keep each selected Achievement
+      Standard aspect visible and retain explicit
+      disciplinary teaching where required.
+
+    </p>
+
+  `;
+
+
+  output._suggestionData =
+    suggestions;
+
+
+  bindSuggestionActions();
 
 }
 
 
 // ============================================================
-// SUGGEST INTEGRATION POSSIBILITIES
+// CREATE INTEGRATION SUGGESTIONS
 // ============================================================
 
-function bindSuggestionButton() {
-
-  const button =
-    document.getElementById(
-      "integrationSuggest"
-    );
-
-
-  if (!button) {
-    return;
-  }
-
-
-  button.addEventListener(
-    "click",
-    () => {
-
-      const rows =
-        getSelectedCurriculumRows();
-
-
-      const box =
-        document.getElementById(
-          "integrationSuggestions"
-        );
-
-
-      if (!box) {
-        return;
-      }
-
-
-      if (
-        rows.length <
-        2
-      ) {
-
-        box.innerHTML = `
-
-          <strong>
-            Select at least two Achievement Standard aspects first.
-          </strong>
-
-          <br><br>
-
-          Return to Step 2 and select the curriculum that
-          will be explicitly taught and/or assessed.
-
-        `;
-
-        return;
-
-      }
-
-
-      const suggestions =
-        buildIntegrationSuggestions(
-          rows
-        );
-
-
-      box.innerHTML = `
-
-        <div class="integration-suggestion-section">
-
-          <strong>
-            Possible conceptual connections
-          </strong>
-
-          <ul>
-
-            ${
-              suggestions.concepts
-                .map(
-                  (item) => `
-
-                    <li>
-                      ${escapeHtml(
-                        item
-                      )}
-                    </li>
-
-                  `
-                )
-                .join("")
-            }
-
-          </ul>
-
-        </div>
-
-
-        <div class="integration-suggestion-section">
-
-          <strong>
-            Possible authentic integration opportunities
-          </strong>
-
-          <ul>
-
-            ${
-              suggestions.opportunities
-                .map(
-                  (item) => `
-
-                    <li>
-                      ${escapeHtml(
-                        item
-                      )}
-                    </li>
-
-                  `
-                )
-                .join("")
-            }
-
-          </ul>
-
-        </div>
-
-
-        <div class="integration-suggestion-section">
-
-          <strong>
-            Possible integration notes
-          </strong>
-
-          <ul>
-
-            ${
-              suggestions.notes
-                .map(
-                  (item) => `
-
-                    <li>
-                      ${escapeHtml(
-                        item
-                      )}
-                    </li>
-
-                  `
-                )
-                .join("")
-            }
-
-          </ul>
-
-        </div>
-
-
-        <span class="helper">
-
-          These are planning prompts only. Teachers retain
-          responsibility for deciding whether connections
-          are authentic and whether each selected
-          Achievement Standard aspect remains visible.
-
-        </span>
-
-      `;
-
-    }
-  );
-
-}
-
-
-// ============================================================
-// BUILD INTEGRATION SUGGESTIONS
-// ============================================================
-
-function buildIntegrationSuggestions(
+function createIntegrationSuggestions(
   rows
 ) {
 
@@ -2246,7 +1408,8 @@ function buildIntegrationSuggestions(
     uniqueWords(
       rows.map(
         (row) =>
-          curriculumArea(
+          row.area ||
+          inferAreaFromText(
             row
           )
       )
@@ -2254,47 +1417,24 @@ function buildIntegrationSuggestions(
 
 
   const text =
-    rows
-      .map(
-        (row) =>
-          row.text ||
-          row.statement ||
-          ""
-      )
-      .join(
-        " "
-      )
-      .toLowerCase();
-
-
-  const concepts =
-    buildConceptSuggestions(
-      text,
-      subjects,
-      areas
-    );
-
-
-  const opportunities =
-    buildOpportunitySuggestions(
-      text,
-      subjects,
-      areas
-    );
-
-
-  const notes =
-    buildIntegrationNotes(
-      subjects,
-      areas
+    normaliseText(
+      rows
+        .map(
+          (row) =>
+            row.text || ""
+        )
+        .join(
+          " "
+        )
     );
 
 
   return {
 
     concepts:
-      uniqueWords(
-        concepts
+      buildConcepts(
+        text,
+        subjects
       )
         .slice(
           0,
@@ -2302,17 +1442,19 @@ function buildIntegrationSuggestions(
         ),
 
     opportunities:
-      uniqueWords(
-        opportunities
+      buildOpportunities(
+        text,
+        subjects
       )
         .slice(
           0,
-          4
+          5
         ),
 
     notes:
-      uniqueWords(
-        notes
+      buildNotes(
+        subjects,
+        areas
       )
         .slice(
           0,
@@ -2325,168 +1467,120 @@ function buildIntegrationSuggestions(
 
 
 // ============================================================
-// CONCEPTUAL CONNECTION SUGGESTIONS
+// CONCEPTUAL CONNECTIONS
 // ============================================================
 
-function buildConceptSuggestions(
+function buildConcepts(
   text,
-  subjects,
-  areas
+  subjects
 ) {
 
   const concepts = [];
 
 
-  if (
-    /change|continuity|develop|growth|adapt|transform/.test(
-      text
-    )
-  ) {
-
-    concepts.push(
-      "Change — how people, places, ideas, systems or living things change over time."
-    );
-
-  }
+  addConcept(
+    concepts,
+    text,
+    /change|continuity|develop|adapt|transform|growth/,
+    "Change",
+    "How people, places, ideas, systems or living things change and what stays the same."
+  );
 
 
-  if (
-    /cause|effect|impact|influence|result|consequence/.test(
-      text
-    )
-  ) {
-
-    concepts.push(
-      "Cause and effect — how actions, events or processes lead to consequences."
-    );
-
-  }
+  addConcept(
+    concepts,
+    text,
+    /cause|effect|impact|influence|consequence|result/,
+    "Cause and effect",
+    "How actions, events, choices or processes lead to consequences."
+  );
 
 
-  if (
-    /relationship|connection|interconnection|interact|linked/.test(
-      text
-    )
-  ) {
-
-    concepts.push(
-      "Connections — how people, environments, systems, ideas or texts are linked."
-    );
-
-  }
+  addConcept(
+    concepts,
+    text,
+    /connection|relationship|interconnection|interact/,
+    "Connections",
+    "How people, environments, systems, ideas or texts are connected."
+  );
 
 
-  if (
-    /perspective|viewpoint|opinion|point of view|representation/.test(
-      text
-    )
-  ) {
-
-    concepts.push(
-      "Perspective — how different people, groups or creators represent and interpret ideas differently."
-    );
-
-  }
+  addConcept(
+    concepts,
+    text,
+    /perspective|viewpoint|point of view|representation/,
+    "Perspective",
+    "How ideas, events or experiences can be understood and represented differently."
+  );
 
 
-  if (
-    /purpose|audience|communicat|message|inform|persuad/.test(
-      text
-    )
-  ) {
-
-    concepts.push(
-      "Communication — how ideas are shaped and communicated for different purposes and audiences."
-    );
-
-  }
+  addConcept(
+    concepts,
+    text,
+    /audience|purpose|communicat|message|inform|persuad/,
+    "Communication",
+    "How ideas are shaped and communicated for different purposes and audiences."
+  );
 
 
-  if (
-    /resource|sustainab|environment|care|manage|conserve/.test(
-      text
-    )
-  ) {
-
-    concepts.push(
-      "Sustainability and responsibility — how decisions affect people, places and resources."
-    );
-
-  }
+  addConcept(
+    concepts,
+    text,
+    /identity|belong|culture|community|heritage/,
+    "Identity and belonging",
+    "How people understand themselves and their connections to groups, cultures and communities."
+  );
 
 
-  if (
-    /identity|belong|culture|community|heritage/.test(
-      text
-    )
-  ) {
-
-    concepts.push(
-      "Identity and belonging — how people understand themselves, groups, cultures and communities."
-    );
-
-  }
+  addConcept(
+    concepts,
+    text,
+    /sustainab|resource|environment|care|manage|responsib/,
+    "Sustainability and responsibility",
+    "How decisions and actions affect people, places, environments and resources."
+  );
 
 
-  if (
-    /design|solution|problem|criteria|evaluate|improve/.test(
-      text
-    )
-  ) {
-
-    concepts.push(
-      "Problem solving and design — how ideas are developed, tested and improved to meet a need or purpose."
-    );
-
-  }
+  addConcept(
+    concepts,
+    text,
+    /evidence|source|data|investigat|observe/,
+    "Evidence",
+    "How evidence, observations, sources and data support understanding and conclusions."
+  );
 
 
-  if (
-    /pattern|sequence|structure|organise|relationship/.test(
-      text
-    )
-  ) {
-
-    concepts.push(
-      "Patterns and structure — how information, ideas, processes or systems are organised."
-    );
-
-  }
+  addConcept(
+    concepts,
+    text,
+    /design|solution|problem|criteria|test|improve/,
+    "Problem solving and design",
+    "How ideas and solutions are developed, tested, evaluated and improved."
+  );
 
 
-  if (
-    /evidence|source|investigat|observe|data/.test(
-      text
-    )
-  ) {
-
-    concepts.push(
-      "Evidence — how observations, sources and data are used to build and communicate understanding."
-    );
-
-  }
-
-
-  if (
-    /choice|decision|responsibility|rule|law/.test(
-      text
-    )
-  ) {
-
-    concepts.push(
-      "Decision-making and responsibility — how choices are made and the consequences they may have."
-    );
-
-  }
+  addConcept(
+    concepts,
+    text,
+    /pattern|sequence|structure|organis|relationship/,
+    "Patterns and structure",
+    "How information, ideas, processes and systems are organised."
+  );
 
 
   if (
     !concepts.length
   ) {
 
-    concepts.push(
-      `A shared concept linking ${subjects.join(" and ")} through the selected curriculum demands.`
-    );
+    concepts.push({
+
+      title:
+        "Connections",
+
+      text:
+        `Connections — explore a meaningful relationship between the selected learning in ${subjects.join(" and ")}.`
+
+    });
 
   }
 
@@ -2497,16 +1591,47 @@ function buildConceptSuggestions(
 
 
 // ============================================================
+// ADD CONCEPT WHEN MATCHED
+// ============================================================
+
+function addConcept(
+  list,
+  text,
+  pattern,
+  title,
+  description
+) {
+
+  if (
+    pattern.test(
+      text
+    )
+  ) {
+
+    list.push({
+
+      title,
+
+      text:
+        `${title} — ${description}`
+
+    });
+
+  }
+
+}
+
+
+// ============================================================
 // AUTHENTIC INTEGRATION OPPORTUNITIES
 // ============================================================
 
-function buildOpportunitySuggestions(
+function buildOpportunities(
   text,
-  subjects,
-  areas
+  subjects
 ) {
 
-  const opportunities = [];
+  const results = [];
 
 
   const has =
@@ -2516,64 +1641,80 @@ function buildOpportunitySuggestions(
       );
 
 
-  // ----------------------------------------------------------
-  // English + HASS / Science
-  // ----------------------------------------------------------
+  const artsSubjects = [
+    "Dance",
+    "Drama",
+    "Media Arts",
+    "Music",
+    "Visual Arts"
+  ];
+
+
+  const hasArts =
+    artsSubjects.some(
+      has
+    );
+
 
   if (
-    has(
-      "English"
-    ) &&
-    (
-      has(
-        "HASS"
-      ) ||
-      has(
-        "Science"
-      )
-    )
+    has("English") &&
+    has("HASS")
   ) {
 
-    opportunities.push(
-      "Use HASS or Science disciplinary knowledge as the content for English reading, speaking, viewing or writing rather than creating a separate literacy topic."
+    results.push(
+      "Use HASS knowledge, sources or inquiry as the content students read, discuss and communicate through English."
     );
 
   }
 
 
-  // ----------------------------------------------------------
-  // English + Arts
-  // ----------------------------------------------------------
-
   if (
-    has(
-      "English"
-    ) &&
-    [
-      "Dance",
-      "Drama",
-      "Media Arts",
-      "Music",
-      "Visual Arts"
-    ]
-      .some(
-        (subject) =>
-          has(
-            subject
-          )
-      )
+    has("English") &&
+    has("Science")
   ) {
 
-    opportunities.push(
-      "Use an Arts product or performance as a communication mode, with English supporting planning, explanation, audience and language choices where these demands are selected."
+    results.push(
+      "Use scientific knowledge, investigations and evidence as meaningful content for English reading, explanation, discussion or text creation."
     );
 
   }
 
 
-  // ----------------------------------------------------------
-  // Technologies
-  // ----------------------------------------------------------
+  if (
+    has("English") &&
+    hasArts
+  ) {
+
+    results.push(
+      "Use an Arts product, media work or performance as an authentic communication context, with English supporting audience, purpose and language choices where aligned."
+    );
+
+  }
+
+
+  if (
+    has("HASS") &&
+    hasArts
+  ) {
+
+    results.push(
+      "Represent historical, geographical, civic or cultural understanding through an Arts response while keeping the HASS evidence explicit."
+    );
+
+  }
+
+
+  if (
+    has("HPE") &&
+    has("English")
+  ) {
+
+    results.push(
+      "Use health, relationships, wellbeing or movement learning as the authentic content for explaining, persuading, reflecting or presenting."
+    );
+
+  }
+
 
   if (
     has(
@@ -2584,100 +1725,38 @@ function buildOpportunitySuggestions(
     )
   ) {
 
-    opportunities.push(
-      "Frame the learning around an authentic problem or need where students investigate, plan, create, test and explain a solution."
+    results.push(
+      "Frame learning around an authentic problem or need in which students investigate, plan, create, test and communicate a solution."
     );
 
   }
 
 
-  // ----------------------------------------------------------
-  // HASS + Arts
-  // ----------------------------------------------------------
-
   if (
-    has(
-      "HASS"
-    ) &&
-    [
-      "Dance",
-      "Drama",
-      "Media Arts",
-      "Music",
-      "Visual Arts"
-    ]
-      .some(
-        (subject) =>
-          has(
-            subject
-          )
-      )
-  ) {
-
-    opportunities.push(
-      "Represent historical, geographical, civic or cultural understanding through an Arts response while keeping the HASS disciplinary evidence visible."
-    );
-
-  }
-
-
-  // ----------------------------------------------------------
-  // HPE + English
-  // ----------------------------------------------------------
-
-  if (
-    has(
-      "HPE"
-    ) &&
-    has(
-      "English"
-    )
-  ) {
-
-    opportunities.push(
-      "Use health, wellbeing, relationships or movement content as the context for explaining, persuading, reflecting or presenting to an authentic audience."
-    );
-
-  }
-
-
-  // ----------------------------------------------------------
-  // Investigation / evidence
-  // ----------------------------------------------------------
-
-  if (
-    /investigat|data|evidence|source|observe|collect|measure/.test(
+    /source|evidence|investigat|data|observe|measure/.test(
       text
     )
   ) {
 
-    opportunities.push(
-      "Use one investigation, source set or data collection task to generate information that can then be interpreted and communicated across more than one learning area."
+    results.push(
+      "Use one investigation, source set or collection of evidence to generate knowledge that can be interpreted and communicated across learning areas."
     );
 
   }
 
 
-  // ----------------------------------------------------------
-  // Product / performance
-  // ----------------------------------------------------------
-
   if (
-    /create|produce|perform|present|communicat|construct/.test(
+    /create|produce|perform|present|construct|communicat/.test(
       text
     )
   ) {
 
-    opportunities.push(
-      "Use one authentic final product, presentation or performance to demonstrate multiple curriculum demands where the required evidence naturally overlaps."
+    results.push(
+      "Use one authentic product, presentation or performance to provide evidence across learning areas where the curriculum demands genuinely overlap."
     );
 
   }
 
-
-  // ----------------------------------------------------------
-  // Perspective / representation
-  // ----------------------------------------------------------
 
   if (
     /perspective|viewpoint|representation|audience/.test(
@@ -2685,76 +1764,66 @@ function buildOpportunitySuggestions(
     )
   ) {
 
-    opportunities.push(
-      "Compare how the same idea, issue, event or experience can be represented differently for different audiences, purposes or perspectives."
+    results.push(
+      "Compare how the same idea, issue or experience can be represented differently depending on perspective, purpose or audience."
     );
 
   }
 
 
-  // ----------------------------------------------------------
-  // Sustainability / place
-  // ----------------------------------------------------------
-
   if (
-    /sustainab|environment|place|resource|care/.test(
+    /environment|place|resource|sustainab|community/.test(
       text
     )
   ) {
 
-    opportunities.push(
-      "Use a local place, environmental issue or community need as an authentic context for investigation, communication and decision-making."
+    results.push(
+      "Use a local place, community need or environmental issue as an authentic shared context for investigation, decision-making and communication."
     );
 
   }
 
 
   if (
-    !opportunities.length
+    !results.length
   ) {
 
-    opportunities.push(
-      `Look for one meaningful product, investigation or performance where ${subjects.join(" + ")} can each contribute authentic learning and evidence.`
+    results.push(
+      `Look for one authentic investigation, product or performance where ${subjects.join(" + ")} can each contribute meaningful learning and evidence.`
     );
 
   }
 
 
-  return opportunities;
+  return uniqueWords(
+    results
+  );
 
 }
 
 
 // ============================================================
-// POSSIBLE INTEGRATION NOTES
+// INTEGRATION NOTES
 // ============================================================
 
-function buildIntegrationNotes(
+function buildNotes(
   subjects,
   areas
 ) {
 
-  const notes = [];
+  const notes = [
 
+    "Identify which Achievement Standard aspects can genuinely be taught together and which still require explicit subject-specific teaching.",
 
-  notes.push(
-    "Identify which selected Achievement Standard aspects can genuinely be taught together and which require explicit subject-specific teaching."
-  );
+    "Avoid repeating the same knowledge in separate lessons when it can be authentically revisited through another learning area.",
 
+    "Keep the cognitive demand of each selected Achievement Standard aspect visible when planning integrated learning experiences.",
 
-  notes.push(
-    "Avoid repeating the same knowledge in separate lessons when it can be authentically revisited through another learning area."
-  );
+    "Use shared Tier 2 vocabulary across learning areas where appropriate, while retaining Tier 3 disciplinary terminology for precision.",
 
+    "Make sure integrated assessment does not accidentally reduce or combine curriculum evidence that needs to remain distinct."
 
-  notes.push(
-    "Keep the cognitive demand of each selected Achievement Standard aspect visible when designing integrated learning experiences."
-  );
-
-
-  notes.push(
-    "Use shared vocabulary across learning areas, while retaining subject-specific Tier 3 terminology where disciplinary precision is required."
-  );
+  ];
 
 
   if (
@@ -2763,7 +1832,7 @@ function buildIntegrationNotes(
   ) {
 
     notes.push(
-      `Make the contribution of each learning area explicit: ${subjects.join(", ")}.`
+      `Make the contribution of each selected learning area explicit: ${subjects.join(", ")}.`
     );
 
   }
@@ -2774,41 +1843,207 @@ function buildIntegrationNotes(
   ) {
 
     notes.push(
-      `Current curriculum areas represented include ${areas.join(", ")}.`
+      `The selected curriculum currently spans: ${areas.join(", ")}.`
     );
 
   }
 
 
-  return notes;
+  return uniqueWords(
+    notes
+  );
 
 }
 
 
 // ============================================================
-// ADD CONFIRMED INTEGRATION CONNECTION
+// USE THIS SUGGESTION BUTTONS
 // ============================================================
 
-function bindAddConnectionButton() {
+function bindSuggestionActions() {
 
-  const button =
+  const output =
     document.getElementById(
-      "addIntegrationConnection"
+      "integrationSuggestions"
     );
 
 
-  if (!button) {
+  if (
+    !output ||
+    !output._suggestionData
+  ) {
+
     return;
+
   }
 
 
-  button.addEventListener(
-    "click",
-    () => {
+  const suggestions =
+    output._suggestionData;
 
-      unitPlan.integration
-        .connections
-        .push({
+
+  output
+    .querySelectorAll(
+      "[data-use-concept]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const index =
+              Number(
+                button.dataset
+                  .useConcept
+              );
+
+
+            const concept =
+              suggestions.concepts[
+                index
+              ];
+
+
+            if (
+              !concept
+            ) {
+
+              return;
+
+            }
+
+
+            const field =
+              document.getElementById(
+                "bigIdea"
+              );
+
+
+            if (
+              field
+            ) {
+
+              field.value =
+                concept.text;
+
+
+              updateUnitPlan(
+                "integration.bigIdea",
+                concept.text
+              );
+
+            }
+
+          }
+        );
+
+      }
+    );
+
+
+  output
+    .querySelectorAll(
+      "[data-use-note]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const index =
+              Number(
+                button.dataset
+                  .useNote
+              );
+
+
+            const note =
+              suggestions.notes[
+                index
+              ];
+
+
+            if (
+              !note
+            ) {
+
+              return;
+
+            }
+
+
+            const field =
+              document.getElementById(
+                "integrationNotes"
+              );
+
+
+            if (
+              !field
+            ) {
+
+              return;
+
+            }
+
+
+            const existing =
+              field.value.trim();
+
+
+            const updated =
+              existing
+                ? `${existing}\n• ${note}`
+                : `• ${note}`;
+
+
+            field.value =
+              updated;
+
+
+            updateUnitPlan(
+              "integration.integrationNotes",
+              updated
+            );
+
+          }
+        );
+
+      }
+    );
+
+}
+
+
+// ============================================================
+// ADD CONFIRMED CONNECTION
+// ============================================================
+
+function bindAddConnection() {
+
+  document
+    .getElementById(
+      "addIntegrationConnection"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+
+        const connections =
+          [
+            ...(
+              unitPlan.integration
+                ?.connections ||
+              []
+            )
+          ];
+
+
+        connections.push({
 
           learningAreas:
             "",
@@ -2822,32 +2057,42 @@ function bindAddConnectionButton() {
         });
 
 
-      renderIntegrationConnections();
+        updateUnitPlan(
+          "integration.connections",
+          connections
+        );
 
-    }
-  );
+
+        renderConnections();
+
+      }
+    );
 
 }
 
 
 // ============================================================
-// RENDER CONFIRMED CONNECTIONS
+// RENDER CONNECTIONS
 // ============================================================
 
-function renderIntegrationConnections() {
+function renderConnections() {
 
   const container =
-    findConnectionContainer();
+    getConnectionContainer();
 
 
-  if (!container) {
+  if (
+    !container
+  ) {
+
     return;
+
   }
 
 
   const connections =
     unitPlan.integration
-      .connections ||
+      ?.connections ||
     [];
 
 
@@ -2865,7 +2110,84 @@ function renderIntegrationConnections() {
   container.innerHTML =
     connections
       .map(
-        connectionCardHtml
+        (
+          connection,
+          index
+        ) => `
+
+          <article
+            class="integration-connection"
+            data-connection-index="${index}"
+          >
+
+            <div class="connection-head">
+
+              <strong>
+                Connection ${index + 1}
+              </strong>
+
+
+              <button
+                type="button"
+                class="remove-integration-connection"
+                data-remove-connection="${index}"
+              >
+                Remove
+              </button>
+
+            </div>
+
+
+            <label>
+
+              Learning areas
+
+              <input
+                class="connection-learning-areas"
+                value="${escapeAttribute(
+                  connection.learningAreas ||
+                  ""
+                )}"
+                placeholder="e.g. English + HASS"
+              >
+
+            </label>
+
+
+            <label>
+
+              How do these curriculum demands connect?
+
+              <textarea
+                class="connection-description"
+                rows="3"
+                placeholder="Describe the authentic connection."
+              >${escapeHtml(
+                connection.connection ||
+                ""
+              )}</textarea>
+
+            </label>
+
+
+            <label>
+
+              Evidence / planning note
+
+              <textarea
+                class="connection-evidence"
+                rows="3"
+                placeholder="What evidence can be shared? What still needs to remain discrete?"
+              >${escapeHtml(
+                connection.evidence ||
+                ""
+              )}</textarea>
+
+            </label>
+
+          </article>
+
+        `
       )
       .join("");
 
@@ -2881,7 +2203,7 @@ function renderIntegrationConnections() {
 // FIND CONNECTION CONTAINER
 // ============================================================
 
-function findConnectionContainer() {
+function getConnectionContainer() {
 
   return (
     document.getElementById(
@@ -2896,95 +2218,6 @@ function findConnectionContainer() {
       "connectionsContainer"
     )
   );
-
-}
-
-
-// ============================================================
-// CONNECTION CARD
-// ============================================================
-
-function connectionCardHtml(
-  connection,
-  index
-) {
-
-  return `
-
-    <article
-      class="integration-connection"
-      data-connection-index="${index}"
-    >
-
-      <div class="connection-head">
-
-        <h3>
-          Connection ${index + 1}
-        </h3>
-
-
-        <button
-          type="button"
-          class="remove-integration-connection"
-          data-remove-connection="${index}"
-        >
-          Remove
-        </button>
-
-      </div>
-
-
-      <label>
-
-        Learning areas
-
-        <input
-          type="text"
-          class="connection-learning-areas"
-          value="${escapeAttribute(
-            connection.learningAreas ||
-            ""
-          )}"
-          placeholder="e.g. HASS, English"
-        >
-
-      </label>
-
-
-      <label>
-
-        How do these curriculum demands connect?
-
-        <textarea
-          class="connection-description"
-          rows="3"
-          placeholder="Describe the authentic teaching or learning connection."
-        >${escapeHtml(
-          connection.connection ||
-          ""
-        )}</textarea>
-
-      </label>
-
-
-      <label>
-
-        Evidence / planning note
-
-        <textarea
-          class="connection-evidence"
-          rows="3"
-          placeholder="Could one learning experience provide evidence for both? What still needs separate teaching or evidence?"
-        >${escapeHtml(
-          connection.evidence ||
-          ""
-        )}</textarea>
-
-      </label>
-
-    </article>
-
-  `;
 
 }
 
@@ -3011,18 +2244,6 @@ function bindConnectionEvents(
           );
 
 
-        const connection =
-          unitPlan.integration
-            .connections[
-              index
-            ];
-
-
-        if (!connection) {
-          return;
-        }
-
-
         card
           .querySelector(
             ".connection-learning-areas"
@@ -3031,9 +2252,11 @@ function bindConnectionEvents(
             "input",
             (event) => {
 
-              connection
-                .learningAreas =
-                  event.target.value;
+              updateConnection(
+                index,
+                "learningAreas",
+                event.target.value
+              );
 
             }
           );
@@ -3047,9 +2270,11 @@ function bindConnectionEvents(
             "input",
             (event) => {
 
-              connection
-                .connection =
-                  event.target.value;
+              updateConnection(
+                index,
+                "connection",
+                event.target.value
+              );
 
             }
           );
@@ -3063,9 +2288,11 @@ function bindConnectionEvents(
             "input",
             (event) => {
 
-              connection
-                .evidence =
-                  event.target.value;
+              updateConnection(
+                index,
+                "evidence",
+                event.target.value
+              );
 
             }
           );
@@ -3092,15 +2319,29 @@ function bindConnectionEvents(
               );
 
 
-            unitPlan.integration
-              .connections
-              .splice(
-                index,
-                1
-              );
+            const connections =
+              [
+                ...(
+                  unitPlan.integration
+                    ?.connections ||
+                  []
+                )
+              ];
 
 
-            renderIntegrationConnections();
+            connections.splice(
+              index,
+              1
+            );
+
+
+            updateUnitPlan(
+              "integration.connections",
+              connections
+            );
+
+
+            renderConnections();
 
           }
         );
@@ -3112,10 +2353,114 @@ function bindConnectionEvents(
 
 
 // ============================================================
-// SET FIELD VALUE
+// UPDATE CONNECTION
 // ============================================================
 
-function setFieldValue(
+function updateConnection(
+  index,
+  field,
+  value
+) {
+
+  const connections =
+    (
+      unitPlan.integration
+        ?.connections ||
+      []
+    )
+      .map(
+        (connection) => ({
+          ...connection
+        })
+      );
+
+
+  if (
+    !connections[
+      index
+    ]
+  ) {
+
+    return;
+
+  }
+
+
+  connections[
+    index
+  ][
+    field
+  ] =
+    value;
+
+
+  updateUnitPlan(
+    "integration.connections",
+    connections
+  );
+
+}
+
+
+// ============================================================
+// CURRICULUM SIGNATURE
+// ============================================================
+
+function curriculumSignature(
+  rows
+) {
+
+  return rows
+    .map(
+      (row) =>
+        row.code ||
+        [
+          row.subject,
+          row.grade,
+          row.text
+        ]
+          .join(
+            "|"
+          )
+    )
+    .sort()
+    .join(
+      "||"
+    );
+
+}
+
+
+// ============================================================
+// NORMALISE TEXT
+// ============================================================
+
+function normaliseText(
+  value
+) {
+
+  return String(
+    value || ""
+  )
+    .toLowerCase()
+    .replace(
+      /[^\p{L}\p{N}\s'-]/gu,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+
+}
+
+
+// ============================================================
+// SET VALUE
+// ============================================================
+
+function setValue(
   id,
   value
 ) {
@@ -3126,20 +2471,20 @@ function setFieldValue(
     );
 
 
-  if (!element) {
-    return;
+  if (
+    element
+  ) {
+
+    element.value =
+      value || "";
+
   }
-
-
-  element.value =
-    value ||
-    "";
 
 }
 
 
 // ============================================================
-// ESCAPE HTML
+// HTML ESCAPING
 // ============================================================
 
 function escapeHtml(
@@ -3147,8 +2492,7 @@ function escapeHtml(
 ) {
 
   return String(
-    value ??
-    ""
+    value ?? ""
   )
     .replaceAll(
       "&",
@@ -3173,10 +2517,6 @@ function escapeHtml(
 
 }
 
-
-// ============================================================
-// ESCAPE ATTRIBUTE
-// ============================================================
 
 function escapeAttribute(
   value
