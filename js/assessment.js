@@ -2946,11 +2946,7 @@ function analyseEvidenceMap() {
 }
 
 
-// ============================================================
-// DRAFT ASSESSMENT
-// ============================================================
-
-function buildSuggestedQuestion(
+//function buildSuggestedQuestion(
   rows,
   evidenceFormat
 ) {
@@ -2962,7 +2958,7 @@ function buildSuggestedQuestion(
   }
 
 
-  const verb =
+  const demand =
     verbForAspect(
       rows[0].text
     );
@@ -3000,8 +2996,38 @@ function buildSuggestedQuestion(
     justify:
       "Justify your response using relevant reasons or evidence.",
 
+
+    // ========================================================
+    // RECEPTIVE ENGLISH DEMANDS
+    // ========================================================
+
+    comprehend:
+      "Read and/or view the text and demonstrate comprehension of the relevant ideas, information and meaning.",
+
+    read:
+      "Read the text and demonstrate understanding of the relevant ideas and information.",
+
+    view:
+      "View the text or representation and demonstrate understanding of the relevant ideas and information.",
+
+
+    // ========================================================
+    // PRODUCTIVE ENGLISH DEMANDS
+    // ========================================================
+
+    write:
+      "Write the required response using the appropriate ideas, structure and language features.",
+
+    present:
+      "Present the required response using appropriate content, organisation and delivery for the audience and purpose.",
+
     create:
       "Create a response that demonstrates the selected learning.",
+
+
+    // ========================================================
+    // OTHER DEMANDS
+    // ========================================================
 
     construct:
       "Construct the required product, representation or solution.",
@@ -3067,14 +3093,13 @@ function buildSuggestedQuestion(
 
 
   let question =
-    stems[verb] ||
+    stems[demand] ||
     "Demonstrate the selected learning.";
 
 
   if (
     evidenceFormat &&
-    evidenceFormat !==
-      "__own"
+    evidenceFormat !== "__own"
   ) {
 
     question +=
@@ -3094,190 +3119,6 @@ function buildSuggestedQuestion(
 
 
   return question;
-
-}
-
-
-function buildDraftAssessment() {
-
-  const yearLevel =
-    unitPlan.assessments
-      .activeYear;
-
-
-  const container =
-    document.getElementById(
-      "draftAssessment"
-    );
-
-
-  if (!container) {
-    return;
-  }
-
-
-  if (!yearLevel) {
-
-    container.innerHTML = `
-      <div class="empty">
-        Choose the assessment year level first.
-      </div>
-    `;
-
-    return;
-
-  }
-
-
-  const assessment =
-    getAssessment(
-      yearLevel
-    );
-
-
-  const curriculumRows =
-    rowsForAssessmentYear(
-      yearLevel
-    );
-
-
-  const usableComponents =
-    assessment.components
-      .filter(
-        (component) =>
-          component
-            .selectedStandardCodes
-            .length
-      );
-
-
-  if (
-    !usableComponents.length
-  ) {
-
-    container.innerHTML = `
-
-      <div class="empty">
-
-        Link at least one question or
-        task component to an Achievement
-        Standard aspect before building
-        the draft assessment.
-
-      </div>
-
-    `;
-
-    return;
-
-  }
-
-
-  assessment.draftTask =
-    usableComponents
-      .map(
-        (component, index) => {
-
-          const rows =
-            curriculumRows
-              .filter(
-                (row) =>
-                  component
-                    .selectedStandardCodes
-                    .includes(
-                      row.code
-                    )
-              );
-
-
-          const verbs =
-            [
-              ...new Set(
-                rows
-                  .map(
-                    (row) =>
-                      verbForAspect(
-                        row.text
-                      )
-                  )
-                  .filter(Boolean)
-              )
-            ];
-
-
-          const question =
-            component.questionText
-              ?.trim() ||
-            buildSuggestedQuestion(
-              rows,
-              component.evidenceFormat
-            );
-
-
-          return {
-
-            id:
-              component.id,
-
-            number:
-              index + 1,
-
-            question,
-
-            evidenceFormat:
-              component.evidenceFormat,
-
-            standardCodes:
-              [
-                ...component
-                  .selectedStandardCodes
-              ],
-
-            verbs
-
-          };
-
-        }
-      );
-
-
-  assessment.taskEvidence =
-    assessment.draftTask
-      .map(
-        (item) =>
-          `Question ${item.number}: ${item.question}`
-      )
-      .join("\n\n");
-
-
-  saveAssessment(
-    yearLevel,
-    assessment
-  );
-
-
-  const taskField =
-    document.getElementById(
-      "assessmentTask"
-    );
-
-
-  if (taskField) {
-
-    taskField.value =
-      assessment.taskEvidence;
-
-  }
-
-
-  renderDraftAssessment(
-    yearLevel
-  );
-
-
-  renderQualityCheck(
-    yearLevel
-  );
 
 }
 
