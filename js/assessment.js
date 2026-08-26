@@ -2946,7 +2946,7 @@ function analyseEvidenceMap() {
 }
 
 
-//function buildSuggestedQuestion(
+function buildSuggestedQuestion(
   rows,
   evidenceFormat
 ) {
