@@ -2946,6 +2946,74 @@ function analyseEvidenceMap() {
 }
 
 
+// ============================================================
+// BUILD DRAFT ASSESSMENT
+// ============================================================
+
+function buildDraftAssessment() {
+  const yearLevel = unitPlan.assessments.activeYear;
+  if (!yearLevel) return;
+
+  const assessment = getAssessment(yearLevel);
+  const curriculumRows = rowsForAssessmentYear(yearLevel);
+  const usableComponents = assessment.components.filter(
+    (component) => component.selectedStandardCodes.length
+  );
+
+  if (!usableComponents.length) {
+    const container = document.getElementById("draftAssessment");
+    if (container) {
+      container.innerHTML = `
+        <div class="empty">
+          Link at least one question or task component to an Achievement
+          Standard aspect before building the draft assessment.
+        </div>
+      `;
+    }
+    return;
+  }
+
+  assessment.draftTask = usableComponents.map((component, index) => {
+    const rows = curriculumRows.filter((row) =>
+      component.selectedStandardCodes.includes(row.code)
+    );
+
+    const verbs = [
+      ...new Set(rows.map((row) => verbForAspect(row.text)).filter(Boolean))
+    ];
+
+    const question =
+      component.questionText?.trim() ||
+      buildSuggestedQuestion(rows, component.evidenceFormat);
+
+    return {
+      id: component.id,
+      number: index + 1,
+      question,
+      evidenceFormat: component.evidenceFormat,
+      standardCodes: [...component.selectedStandardCodes],
+      verbs
+    };
+  });
+
+  assessment.taskEvidence = assessment.draftTask
+    .map((item) => `Question ${item.number}: ${item.question}`)
+    .join("\n\n");
+
+  saveAssessment(yearLevel, assessment);
+
+  const taskField = document.getElementById("assessmentTask");
+  if (taskField) taskField.value = assessment.taskEvidence;
+
+  renderDraftAssessment(yearLevel);
+  renderQualityCheck(yearLevel);
+}
+
+
+// ============================================================
+// SUGGESTED ASSESSMENT QUESTION
+// ============================================================
+
 function buildSuggestedQuestion(
   rows,
   evidenceFormat
