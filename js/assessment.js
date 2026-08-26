@@ -51,11 +51,719 @@ export function initAssessmentPage() {
 
 
   document
+    .getElementById("generateAssessmentOverview")
+    ?.addEventListener(
+      "click",
+      generateAssessmentOverview
+    );
+
+
+  document
     .getElementById("buildGtmj")
     ?.addEventListener(
       "click",
       buildGtmj
     );
+
+}
+
+
+// ============================================================
+// ASSESSMENT OVERVIEW GENERATOR
+// ============================================================
+
+const ASSESSMENT_TECHNIQUE_TEMPLATES = {
+
+  Project: {
+    purpose:
+      "Gather evidence of students’ ability to apply the selected knowledge, understanding and skills in a purposeful task.",
+    context:
+      "Students apply their learning in an authentic or meaningful context connected to the unit.",
+    evidence:
+      "Students create a product, performance or response that demonstrates the selected Achievement Standard aspects.",
+    conditions:
+      "Completed over the nominated assessment period. Students may access relevant learning resources. Individual evidence of achievement must be identifiable."
+  },
+
+  Investigation: {
+    purpose:
+      "Gather evidence of students’ ability to investigate, use relevant information or data, and communicate findings using the selected knowledge and skills.",
+    context:
+      "Students investigate a question, issue, problem, place, event or phenomenon connected to the unit.",
+    evidence:
+      "Students investigate the focus, gather and use relevant information or data, and communicate what they find.",
+    conditions:
+      "Completed over the nominated assessment period. Students may access appropriate sources and resources. Individual evidence of achievement must be identifiable."
+  },
+
+  "Collection of work": {
+    purpose:
+      "Gather evidence of students’ learning across a sequence of related classroom tasks.",
+    context:
+      "Students demonstrate their learning through a collection of work completed during the unit.",
+    evidence:
+      "Students complete a selected collection of responses or products that together demonstrate the required Achievement Standard aspects.",
+    conditions:
+      "Evidence is collected across the unit. Tasks may be completed under different classroom conditions. The final collection must contain sufficient individual evidence for judgement."
+  },
+
+  "Collection of Work": {
+    purpose:
+      "Gather evidence of students’ learning across a sequence of related classroom tasks.",
+    context:
+      "Students demonstrate their learning through a collection of work completed during the unit.",
+    evidence:
+      "Students complete a selected collection of responses or products that together demonstrate the required Achievement Standard aspects.",
+    conditions:
+      "Evidence is collected across the unit. Tasks may be completed under different classroom conditions. The final collection must contain sufficient individual evidence for judgement."
+  },
+
+  Examination: {
+    purpose:
+      "Gather evidence of students’ independent knowledge, understanding and application of the selected curriculum requirements.",
+    context:
+      "Students respond independently to a set of questions or problems based on the learning developed during the unit.",
+    evidence:
+      "Students complete selected-response, short-response and/or problem-solving questions that demonstrate the selected Achievement Standard aspects.",
+    conditions:
+      "Completed individually within a specified time. Access to resources is determined by the teacher. Responses must represent the student’s own work."
+  },
+
+  Test: {
+    purpose:
+      "Gather evidence of students’ independent knowledge, understanding and application of the selected curriculum requirements.",
+    context:
+      "Students respond independently to questions based on the learning developed during the unit.",
+    evidence:
+      "Students complete questions or tasks that demonstrate the selected Achievement Standard aspects.",
+    conditions:
+      "Completed individually within a specified time. Access to resources is determined by the teacher. Responses must represent the student’s own work."
+  },
+
+  "Extended response": {
+    purpose:
+      "Gather evidence of students’ ability to develop and communicate a sustained response using the selected knowledge, understanding and skills.",
+    context:
+      "Students respond to a question, stimulus or purpose connected to the unit learning.",
+    evidence:
+      "Students create an extended response that demonstrates the selected Achievement Standard aspects using appropriate evidence, ideas, structure and conventions.",
+    conditions:
+      "Completed individually over the nominated assessment period. Access to planning notes, sources and learning resources is determined by the teacher."
+  },
+
+  "Short response": {
+    purpose:
+      "Gather focused evidence of students’ knowledge, understanding and application of the selected curriculum requirements.",
+    context:
+      "Students respond to a set of focused questions, prompts, sources or scenarios connected to the unit learning.",
+    evidence:
+      "Students complete short written, oral, selected-response and/or source-based responses that demonstrate the selected Achievement Standard aspects.",
+    conditions:
+      "Completed individually. Time and access to resources are determined by the teacher. Responses must provide identifiable evidence of each student’s learning."
+  },
+
+  Practical: {
+    purpose:
+      "Gather evidence of students’ ability to demonstrate and apply the selected skills, processes and knowledge.",
+    context:
+      "Students demonstrate the required learning through an authentic practical task.",
+    evidence:
+      "Students complete the required practical task. The completed product, process and/or teacher observation provides evidence of achievement.",
+    conditions:
+      "Completed using the required equipment and resources. Teacher observation may be used to record demonstrated skills and processes. Individual evidence of achievement must be identifiable."
+  },
+
+  "Observed demonstration": {
+    purpose:
+      "Gather evidence of students’ ability to demonstrate the selected skills, processes, behaviours and knowledge in action.",
+    context:
+      "Students demonstrate the required learning during an authentic classroom, practical or performance task.",
+    evidence:
+      "Students demonstrate the required skills or processes while the teacher records observable evidence of achievement.",
+    conditions:
+      "Observed under appropriate classroom or practical conditions. The teacher may use a checklist, anecdotal record, rubric, photo or video evidence. Individual achievement must be identifiable."
+  },
+
+  Performance: {
+    purpose:
+      "Gather evidence of students’ ability to demonstrate and apply the selected skills, processes and knowledge through performance.",
+    context:
+      "Students demonstrate the required learning through a prepared or authentic performance.",
+    evidence:
+      "Students perform the prepared work using the required skills and processes. Teacher observation and the performance provide evidence of achievement.",
+    conditions:
+      "Performed individually and/or collaboratively as appropriate to the learning area. Teacher observation may be used to record achievement. Individual evidence must be identifiable."
+  },
+
+  Presentation: {
+    purpose:
+      "Gather evidence of students’ ability to select, organise and communicate the required knowledge and ideas for an audience and purpose.",
+    context:
+      "Students communicate their learning to an identified audience using an appropriate presentation format.",
+    evidence:
+      "Students prepare and deliver a presentation that demonstrates the selected Achievement Standard aspects.",
+    conditions:
+      "Students may prepare using relevant classroom resources. Presentation time and audience are determined by the teacher. Individual contribution must be identifiable."
+  },
+
+  Multimodal: {
+    purpose:
+      "Gather evidence of students’ ability to communicate the selected knowledge, understanding and skills using appropriate modes and features.",
+    context:
+      "Students create a multimodal response for an identified audience and purpose connected to the unit.",
+    evidence:
+      "Students create a multimodal response combining appropriate modes such as written language, images, audio, video, movement or spoken language.",
+    conditions:
+      "Completed over the nominated assessment period using appropriate resources and digital or non-digital tools. Individual evidence of achievement must be identifiable."
+  },
+
+  Other: {
+    purpose:
+      "Gather valid evidence of students’ achievement against the selected curriculum requirements.",
+    context:
+      "Students complete an assessment task in a context that supports them to demonstrate the selected learning.",
+    evidence:
+      "Students provide sufficient evidence to demonstrate the selected Achievement Standard aspects.",
+    conditions:
+      "Conditions are determined by the teacher to suit the task while ensuring individual evidence of achievement is identifiable."
+  }
+
+};
+
+
+function generateAssessmentOverview() {
+
+  const yearLevel =
+    unitPlan.assessments.activeYear;
+
+  if (!yearLevel) {
+    window.alert(
+      "Select an assessment year level first."
+    );
+    return;
+  }
+
+  const assessment =
+    getAssessment(
+      yearLevel
+    );
+
+  const technique =
+    document
+      .getElementById(
+        "assessmentTechnique"
+      )
+      ?.value ||
+    assessment.technique ||
+    "Project";
+
+  const template =
+    ASSESSMENT_TECHNIQUE_TEMPLATES[
+      technique
+    ] ||
+    ASSESSMENT_TECHNIQUE_TEMPLATES.Other;
+
+  const curriculumRows =
+    rowsForAssessmentYear(
+      yearLevel
+    );
+
+  const selectedRows =
+    getSelectedAssessmentRows(
+      assessment,
+      curriculumRows
+    );
+
+  const generatedPurpose =
+    buildCurriculumAwarePurpose(
+      selectedRows,
+      template.purpose
+    );
+
+  const generatedEvidence =
+    buildCurriculumAwareEvidence(
+      selectedRows,
+      template.evidence
+    );
+
+  const generatedContext =
+    buildAssessmentContext(
+      template.context
+    );
+
+  const existingContent =
+    [
+      assessment.purpose,
+      assessment.context,
+      assessment.taskEvidence,
+      assessment.conditions
+    ]
+      .some(
+        (value) =>
+          String(value || "")
+            .trim()
+      );
+
+  if (existingContent) {
+
+    const replace =
+      window.confirm(
+        "Replace the current assessment overview?\n\n" +
+        "This will update Purpose, Context, Student task / evidence and Conditions using the selected technique and curriculum."
+      );
+
+    if (!replace) {
+      return;
+    }
+
+  }
+
+  assessment.technique =
+    technique;
+
+  assessment.purpose =
+    generatedPurpose;
+
+  assessment.context =
+    generatedContext;
+
+  assessment.taskEvidence =
+    generatedEvidence;
+
+  assessment.conditions =
+    template.conditions;
+
+  saveAssessment(
+    yearLevel,
+    assessment
+  );
+
+  setValue(
+    "assessmentTechnique",
+    assessment.technique
+  );
+
+  setValue(
+    "assessmentPurpose",
+    assessment.purpose
+  );
+
+  setValue(
+    "assessmentContext",
+    assessment.context
+  );
+
+  setValue(
+    "assessmentTask",
+    assessment.taskEvidence
+  );
+
+  setValue(
+    "assessmentConditions",
+    assessment.conditions
+  );
+
+  renderQualityCheck(
+    yearLevel
+  );
+
+  showAssessmentOverviewGeneratedMessage();
+
+}
+
+
+function getSelectedAssessmentRows(
+  assessment,
+  curriculumRows
+) {
+
+  const selectedCodes =
+    new Set();
+
+  assessment.components
+    ?.forEach(
+      (component) => {
+
+        component
+          .selectedStandardCodes
+          ?.forEach(
+            (code) => {
+              selectedCodes.add(
+                code
+              );
+            }
+          );
+
+      }
+    );
+
+  if (selectedCodes.size) {
+
+    return curriculumRows
+      .filter(
+        (row) =>
+          selectedCodes.has(
+            row.code
+          )
+      );
+
+  }
+
+  return curriculumRows;
+
+}
+
+
+function buildCurriculumAwarePurpose(
+  rows,
+  fallback
+) {
+
+  const phrases =
+    getAssessmentDemandPhrases(
+      rows,
+      assessmentDemandPhrase
+    );
+
+  if (!phrases.length) {
+    return fallback;
+  }
+
+  return (
+    "Gather evidence of students’ ability to " +
+    joinReadableList(
+      phrases
+    ) +
+    " using the selected curriculum knowledge, understanding and skills."
+  );
+
+}
+
+
+function buildCurriculumAwareEvidence(
+  rows,
+  fallback
+) {
+
+  const phrases =
+    getAssessmentDemandPhrases(
+      rows,
+      studentEvidencePhrase
+    );
+
+  if (!phrases.length) {
+    return fallback;
+  }
+
+  return (
+    "Students complete the assessment task and provide evidence that they can " +
+    joinReadableList(
+      phrases
+    ) +
+    "."
+  );
+
+}
+
+
+function getAssessmentDemandPhrases(
+  rows,
+  phraseBuilder
+) {
+
+  if (!rows?.length) {
+    return [];
+  }
+
+  const verbs =
+    [
+      ...new Set(
+        rows
+          .map(
+            (row) =>
+              verbForAspect(
+                row.text
+              )
+          )
+          .filter(Boolean)
+      )
+    ];
+
+  return verbs
+    .map(
+      (verb) =>
+        phraseBuilder(
+          verb
+        )
+    )
+    .filter(Boolean);
+
+}
+
+
+function buildAssessmentContext(
+  fallback
+) {
+
+  const authenticContext =
+    String(
+      unitPlan.integration
+        ?.authenticContext ||
+      ""
+    )
+      .trim();
+
+  if (authenticContext) {
+    return authenticContext;
+  }
+
+  const unitContext =
+    String(
+      unitPlan.setup
+        ?.context ||
+      ""
+    )
+      .trim();
+
+  if (unitContext) {
+    return unitContext;
+  }
+
+  return fallback;
+
+}
+
+
+function assessmentDemandPhrase(
+  verb
+) {
+
+  const phrases = {
+    identify:
+      "identify relevant information",
+    recognise:
+      "recognise relevant features or information",
+    describe:
+      "describe relevant features, ideas or characteristics",
+    explain:
+      "explain how or why using relevant details",
+    compare:
+      "compare relevant information, features or ideas",
+    classify:
+      "classify information or items using appropriate characteristics",
+    analyse:
+      "analyse relevant information, sources or data",
+    interpret:
+      "interpret relevant information, sources or data",
+    evaluate:
+      "evaluate information using relevant evidence or criteria",
+    justify:
+      "justify responses using relevant reasons or evidence",
+    comprehend:
+      "read, view and comprehend relevant texts",
+    read:
+      "read and demonstrate understanding of relevant texts",
+    view:
+      "view and demonstrate understanding of relevant texts or representations",
+    write:
+      "create written responses using appropriate ideas, structures and language features",
+    present:
+      "present ideas appropriately for audience and purpose",
+    create:
+      "create an appropriate response",
+    construct:
+      "construct the required product, representation or solution",
+    demonstrate:
+      "demonstrate the required skills or processes",
+    apply:
+      "apply learning appropriately",
+    use:
+      "use the required knowledge, features or processes",
+    develop:
+      "develop the required questions, ideas or plans",
+    propose:
+      "propose a considered action or response",
+    select:
+      "select relevant information or options",
+    organise:
+      "organise ideas or information purposefully",
+    group:
+      "group related information or ideas appropriately",
+    sequence:
+      "sequence information, events or steps appropriately",
+    link:
+      "link relevant ideas or information",
+    locate:
+      "locate relevant information",
+    collect:
+      "collect relevant information or data",
+    represent:
+      "represent information or relationships appropriately",
+    investigate:
+      "investigate questions and use relevant evidence",
+    plan:
+      "plan the required process or response",
+    perform:
+      "perform using the required skills and processes",
+    communicate:
+      "communicate ideas or findings appropriately",
+    infer:
+      "make inferences supported by relevant evidence",
+    summarise:
+      "summarise the main ideas using relevant information"
+  };
+
+  return phrases[verb] || "";
+
+}
+
+
+function studentEvidencePhrase(
+  verb
+) {
+
+  const phrases = {
+    identify:
+      "identify relevant information",
+    recognise:
+      "recognise relevant features",
+    describe:
+      "describe important features or ideas using relevant detail",
+    explain:
+      "explain how or why using relevant details",
+    compare:
+      "compare relevant similarities and differences",
+    classify:
+      "classify information using appropriate characteristics or criteria",
+    analyse:
+      "analyse information, sources or data",
+    interpret:
+      "interpret information, sources or data",
+    evaluate:
+      "make a judgement using relevant evidence or criteria",
+    justify:
+      "justify a response using reasons or evidence",
+    comprehend:
+      "read or view texts and demonstrate comprehension",
+    read:
+      "read and demonstrate understanding of relevant texts",
+    view:
+      "view and demonstrate understanding of relevant texts or representations",
+    write:
+      "create an appropriate written response",
+    present:
+      "present ideas appropriately for audience and purpose",
+    create:
+      "create an appropriate response",
+    construct:
+      "construct the required product or representation",
+    demonstrate:
+      "demonstrate the required skill or process",
+    apply:
+      "apply their learning appropriately",
+    use:
+      "use the required knowledge, features or processes accurately",
+    develop:
+      "develop the required ideas, questions or plan",
+    propose:
+      "propose a considered action or response",
+    select:
+      "select relevant information",
+    organise:
+      "organise ideas or information clearly",
+    group:
+      "group related information appropriately",
+    sequence:
+      "sequence information, events or steps appropriately",
+    link:
+      "link relevant ideas or information clearly",
+    locate:
+      "locate relevant information",
+    collect:
+      "collect relevant information or data",
+    represent:
+      "represent information appropriately",
+    investigate:
+      "investigate a question and use relevant evidence",
+    plan:
+      "plan the required process or response",
+    perform:
+      "perform using the required skills",
+    communicate:
+      "communicate ideas or findings appropriately",
+    infer:
+      "make an inference and support it with evidence",
+    summarise:
+      "summarise the main ideas using relevant information"
+  };
+
+  return phrases[verb] || "";
+
+}
+
+
+function joinReadableList(
+  items
+) {
+
+  const cleanItems =
+    [
+      ...new Set(
+        items.filter(Boolean)
+      )
+    ];
+
+  if (!cleanItems.length) {
+    return "";
+  }
+
+  if (cleanItems.length === 1) {
+    return cleanItems[0];
+  }
+
+  if (cleanItems.length === 2) {
+    return (
+      `${cleanItems[0]} and ${cleanItems[1]}`
+    );
+  }
+
+  return (
+    cleanItems
+      .slice(0, -1)
+      .join(", ") +
+    ", and " +
+    cleanItems[
+      cleanItems.length - 1
+    ]
+  );
+
+}
+
+
+function showAssessmentOverviewGeneratedMessage() {
+
+  const button =
+    document.getElementById(
+      "generateAssessmentOverview"
+    );
+
+  if (!button) {
+    return;
+  }
+
+  const originalText =
+    button.textContent;
+
+  button.textContent =
+    "Overview generated ✓";
+
+  setTimeout(
+    () => {
+      button.textContent =
+        originalText;
+    },
+    1600
+  );
 
 }
 
