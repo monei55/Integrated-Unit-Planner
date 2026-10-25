@@ -42,6 +42,9 @@ export function initAssessmentPage() {
     );
 
 
+  document.getElementById("suggestContextAssessment")
+    ?.addEventListener("click", suggestContextAssessment);
+
   document
     .getElementById("buildDraftAssessment")
     ?.addEventListener(
@@ -3717,6 +3720,86 @@ function buildDraftAssessment() {
   renderQualityCheck(yearLevel);
 }
 
+
+// ============================================================
+// CONTEXT-AWARE DRAFT (OPTIONAL, NON-DESTRUCTIVE)
+// ============================================================
+// Creates editable evidence-map components using already-selected
+// curriculum. Teacher mapping and assessment remain authoritative.
+function suggestContextAssessment() {
+  const year = unitPlan.assessments.activeYear;
+  if (!year) return;
+  const rows = rowsForAssessmentYear(year);
+  if (!rows.length) {
+    window.alert("Select Achievement Standard aspects for this year first.");
+    return;
+  }
+  const assessment = getAssessment(year);
+  if (assessment.components?.length || assessment.draftTask?.length) {
+    if (!window.confirm("Replace existing assessment components with new suggestions? Existing questions and their mapping will be replaced. Cancel to keep your work.")) return;
+  }
+  const context = assessmentContextProfile();
+  assessment.components = rows.map(row => {
+    const suggestion = contextualAssessmentQuestion(row, context);
+    return {
+      id: crypto.randomUUID(),
+      title: suggestion.title,
+      selectedStandardCodes: [row.code],
+      cognitiveDemands: [verbForAspect(row.text)].filter(Boolean),
+      evidenceFormat: suggestion.format,
+      questionText: suggestion.question,
+      integrationConnections: [],
+      teacherNotes: suggestion.note,
+      showUsed: false
+    };
+  });
+  saveAssessment(year, assessment);
+  renderEvidenceMap(year);
+  buildDraftAssessment();
+}
+
+function assessmentContextProfile() {
+  const source = [
+    unitPlan.setup?.title,
+    unitPlan.setup?.context,
+    unitPlan.integration?.bigIdea,
+    unitPlan.integration?.authenticContext,
+    unitPlan.integration?.notes
+  ].filter(Boolean).join(" ");
+  const text = source.toLowerCase();
+  const journey = /are we there yet|journey|travel|trip|places visited/.test(text);
+  const place = journey || /place|community|geograph|local area|environment/.test(text);
+  const recount = /recount|retell|story|narrative/.test(text);
+  return { journey, place, recount, source };
+}
+
+function contextualAssessmentQuestion(row, context) {
+  const text = String(row.text || "").toLowerCase();
+  const subject = row.subject || "";
+  const verb = verbForAspect(row.text);
+  const imageSource = context.journey ? "photographs of places explored during the journey" : "photographs of familiar places";
+  const cautious = "Draft suggestion: check that the response demonstrates the complete selected Achievement Standard aspect; adapt sources and wording to the actual unit.";
+  if (subject === "HASS" && context.place) {
+    if (/care for|look after|protect/.test(text)) return {title:"Caring for places",question:`Look at the pictures showing ways people use ${context.journey ? "places visited during the journey" : "familiar places"}. Circle the pictures showing ways to care for these places.`,format:"Circle / select",note:cautious};
+    if (/special|important to people|significan/.test(text)) return {title:"Special places",question:"Look at pictures of familiar places. Tick the reasons why one of these places might be special to someone.",format:"Tick / select",note:cautious};
+    if (/sort|record|collect|organis|represent/.test(text)) return {title:"Sorting place information",question:`Look at two ${imageSource}. Sort the features shown into the groups provided and record what you found.`,format:"Sort / record",note:cautious};
+    if (/question|inquir/.test(text)) return {title:"Asking questions",question:`Look at one of the ${imageSource}. What would you like to find out about this place? Ask a question.`,format:"Oral or written question",note:cautious};
+    if (/feature|natural|managed|constructed|recognis|identif/.test(text)) return {title:"Features of places",question:`Look at the ${imageSource}. Circle or point to the features named by your teacher.`,format:"Circle / point / select",note:cautious};
+  }
+  if (subject === "English") {
+    if (/retell|recount|sequenc|event/.test(text)) return {title:"Retelling events",question:"Look at the pictures from the familiar text. Put the main events in order, then retell what happened using words, pictures or an oral response as appropriate to the selected standard.",format:"Sequence / retell",note:cautious};
+    if (/language feature|vocabular|word choice/.test(text) && /identif|recognis/.test(text)) return {title:"Finding language features",question:"Read or listen to the familiar text. Circle the sequencing or descriptive words that you can find.",format:"Circle / highlight",note:cautious};
+    if (/create|writ|compos/.test(text)) return {title:"Creating a text",question:"Create the text required by the selected Achievement Standard for the audience and purpose established in this unit. Use the agreed text structure and language features.",format:"Written / oral / multimodal text",note:"Teacher must specify the exact text type and features from the curriculum and approved assessment."};
+  }
+  const object = row.text?.trim() || "the selected learning";
+  const formats = {identify:"Circle, tick, label or list",recognise:"Point to, match, tick or circle",describe:"Describe orally or in writing",compare:"Sort or complete a comparison table",sequence:"Number or arrange",explain:"Give a reason orally or in writing",create:"Produce the required response"};
+  return {
+    title:`${subject || "Curriculum"} — ${verb || "evidence"}`,
+    question:`Using the sources and examples from this unit, ${verb || "demonstrate"} the following: ${object}`,
+    format:formats[verb] || "Teacher-selected response mode",
+    note:"Needs teacher refinement: no sufficiently specific, verified question template matched this curriculum aspect. Do not use unchanged as a student question."
+  };
+}
 
 // ============================================================
 // SUGGESTED ASSESSMENT QUESTION
