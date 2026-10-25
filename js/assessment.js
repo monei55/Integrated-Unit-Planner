@@ -482,12 +482,7 @@ function getAssessmentDemandPhrases(
     [
       ...new Set(
         rows
-          .map(
-            (row) =>
-              verbForAspect(
-                row.text
-              )
-          )
+          .flatMap((row) => verbsForAspect(row.text))
           .filter(Boolean)
       )
     ];
@@ -1897,11 +1892,8 @@ function renderCognitiveDemandCards(
       .map(
         (row) => {
 
-          const verb =
-            verbForAspect(
-              row.text
-            );
-
+          const verbs = verbsForAspect(row.text);
+          const verb = verbs.find(v => VERB_SUPPORT[v]) || verbs[0] || "";
 
           const support =
             VERB_SUPPORT[
@@ -1923,7 +1915,7 @@ function renderCognitiveDemandCards(
                   ${
                     verb
                       ? escapeHtml(
-                          verb.toUpperCase()
+                          verbs.join(" + ").toUpperCase()
                         )
                       : "EVIDENCE"
                   }
@@ -1985,9 +1977,7 @@ function renderCognitiveDemandCards(
 
                     <p class="helper">
 
-                      Use teacher judgement
-                      to identify the evidence
-                      required by this aspect.
+                      ${escapeHtml(contextualAssessmentQuestions(row, assessmentContextProfile()).map(item => item.question).join(" "))}
 
                     </p>
 
@@ -2396,23 +2386,14 @@ function evidenceChoicesForComponent(
       );
 
 
-  const verbs =
-    [
-      ...new Set(
-        rows
-          .map(
-            (row) =>
-              verbForAspect(
-                row.text
-              )
-          )
-          .filter(Boolean)
-      )
-    ];
-
+  const verbs = [...new Set(rows.flatMap(row => verbsForAspect(row.text)))];
 
   const choices = [];
-
+  // Actual context-specific question formats, not only generic verb lists.
+  const context = assessmentContextProfile();
+  rows.forEach(row => contextualAssessmentQuestions(row, context).forEach(item => {
+    if (!item.note.startsWith("REQUIRES")) choices.push({verb: item.verbs.join(" + ") || "TASK", text: item.format});
+  }));
 
   verbs.forEach(
     (verb) => {
@@ -3726,79 +3707,120 @@ function buildDraftAssessment() {
 // ============================================================
 // Creates editable evidence-map components using already-selected
 // curriculum. Teacher mapping and assessment remain authoritative.
+// Teacher-controlled draft generation. Never silently overwrite approved work.
 function suggestContextAssessment() {
   const year = unitPlan.assessments.activeYear;
   if (!year) return;
   const rows = rowsForAssessmentYear(year);
-  if (!rows.length) {
-    window.alert("Select Achievement Standard aspects for this year first.");
-    return;
-  }
+  if (!rows.length) return window.alert("Select Achievement Standard aspects first.");
   const assessment = getAssessment(year);
-  if (assessment.components?.length || assessment.draftTask?.length) {
-    if (!window.confirm("Replace existing assessment components with new suggestions? Existing questions and their mapping will be replaced. Cancel to keep your work.")) return;
-  }
   const context = assessmentContextProfile();
-  assessment.components = rows.map(row => {
-    const suggestion = contextualAssessmentQuestion(row, context);
-    return {
-      id: crypto.randomUUID(),
-      title: suggestion.title,
-      selectedStandardCodes: [row.code],
-      cognitiveDemands: [verbForAspect(row.text)].filter(Boolean),
-      evidenceFormat: suggestion.format,
-      questionText: suggestion.question,
-      integrationConnections: [],
-      teacherNotes: suggestion.note,
-      showUsed: false
-    };
-  });
+  const suggestions = rows.flatMap(row => contextualAssessmentQuestions(row, context));
+  const existing = assessment.components || [];
+  if (existing.length && !window.confirm(
+    `Add ${suggestions.length} draft questions to the ${existing.length} existing components?\n\nOK = add without changing existing questions. Cancel = keep everything unchanged.`
+  )) return;
+  const additions = suggestions.map(item => ({
+    id: crypto.randomUUID(), title: item.title,
+    selectedStandardCodes: [item.code],
+    cognitiveDemands: item.verbs,
+    evidenceFormat: item.format, questionText: item.question,
+    integrationConnections: [], teacherNotes: item.note,
+    showUsed: false
+  }));
+  assessment.components = [...existing, ...additions];
   saveAssessment(year, assessment);
   renderEvidenceMap(year);
   buildDraftAssessment();
+  window.alert(`${additions.length} editable assessment questions added. Review the sources, task wording and curriculum alignment before use. Existing marking-guide edits were preserved.`);
 }
 
 function assessmentContextProfile() {
-  const source = [
-    unitPlan.setup?.title,
-    unitPlan.setup?.context,
-    unitPlan.integration?.bigIdea,
-    unitPlan.integration?.authenticContext,
-    unitPlan.integration?.notes
-  ].filter(Boolean).join(" ");
+  const source = [unitPlan.setup?.title, unitPlan.setup?.context,
+    unitPlan.integration?.bigIdea, unitPlan.integration?.authenticContext,
+    unitPlan.integration?.notes, unitPlan.integration?.terminology]
+    .filter(Boolean).join(" ");
   const text = source.toLowerCase();
-  const journey = /are we there yet|journey|travel|trip|places visited/.test(text);
-  const place = journey || /place|community|geograph|local area|environment/.test(text);
-  const recount = /recount|retell|story|narrative/.test(text);
-  return { journey, place, recount, source };
+  return {
+    journey: /are we there yet|journey|travel|trip|places visited/.test(text),
+    place: /place|community|geograph|local area|environment|journey|travel/.test(text),
+    story: /recount|retell|story|narrative|are we there yet/.test(text),
+    source, title: unitPlan.setup?.title || "this unit"
+  };
 }
 
-function contextualAssessmentQuestion(row, context) {
-  const text = String(row.text || "").toLowerCase();
-  const subject = row.subject || "";
-  const verb = verbForAspect(row.text);
-  const imageSource = context.journey ? "photographs of places explored during the journey" : "photographs of familiar places";
-  const cautious = "Draft suggestion: check that the response demonstrates the complete selected Achievement Standard aspect; adapt sources and wording to the actual unit.";
-  if (subject === "HASS" && context.place) {
-    if (/care for|look after|protect/.test(text)) return {title:"Caring for places",question:`Look at the pictures showing ways people use ${context.journey ? "places visited during the journey" : "familiar places"}. Circle the pictures showing ways to care for these places.`,format:"Circle / select",note:cautious};
-    if (/special|important to people|significan/.test(text)) return {title:"Special places",question:"Look at pictures of familiar places. Tick the reasons why one of these places might be special to someone.",format:"Tick / select",note:cautious};
-    if (/sort|record|collect|organis|represent/.test(text)) return {title:"Sorting place information",question:`Look at two ${imageSource}. Sort the features shown into the groups provided and record what you found.`,format:"Sort / record",note:cautious};
-    if (/question|inquir/.test(text)) return {title:"Asking questions",question:`Look at one of the ${imageSource}. What would you like to find out about this place? Ask a question.`,format:"Oral or written question",note:cautious};
-    if (/feature|natural|managed|constructed|recognis|identif/.test(text)) return {title:"Features of places",question:`Look at the ${imageSource}. Circle or point to the features named by your teacher.`,format:"Circle / point / select",note:cautious};
+// Some curriculum aspects contain several verbs and assessable clauses.
+// Do not stop at the first keyword: offer separate, mapped evidence for each.
+function verbsForAspect(text = "") {
+  const lower = String(text).toLowerCase();
+  const patterns = [
+    ["pose", /\bpos(?:e|es|ing)\b/], ["sort", /\bsort\w*\b/],
+    ["record", /\brecord\w*\b/], ["share", /\bshar(?:e|es|ing)\b/],
+    ["draw conclusions", /\bdraw conclusions?\b/],
+    ["retell", /\bretell\w*\b/], ["report", /\breport\w*\b/],
+    ["state", /\bstat(?:e|es|ing)\b/], ["read", /\bread\b/],
+    ["view", /\bview\w*\b/], ["comprehend", /\bcomprehend\w*\b/],
+    ["make connections", /\bmak(?:e|ing) connections?\b/],
+    ...Object.keys(VERB_SUPPORT).map(v => [v, new RegExp(`\\b${v}\\w*\\b`, "i")])
+  ];
+  return [...new Set(patterns.filter(([,re]) => re.test(lower)).map(([v]) => v))];
+}
+
+function contextualAssessmentQuestions(row, context) {
+  const t = String(row.text || "").toLowerCase();
+  const subject = String(row.subject || "").toLowerCase();
+  const results = [];
+  const photos = context.journey ? "photographs of places explored during the journey" : "photographs of familiar places";
+  const add = (title, question, format, verbs) => results.push({
+    code: row.code, title, question, format, verbs,
+    note: "Draft: teacher to supply the named images/text, verify coverage of the original Achievement Standard aspect, and check the response mode."
+  });
+  if (subject.includes("hass") && context.place) {
+    if (/features? of familiar places|features? of places|natural|managed|constructed/.test(t))
+      add("Features of places", `Look at the ${photos}. Circle the features you can see.`, "Circle / select / point", ["recognise"]);
+    if (/special to people|places are special|significan/.test(t))
+      add("Why places are special", "Look at the pictures of familiar places. Tick the reasons why a place might be special to someone.", "Tick / match", ["recognise"]);
+    if (/care for|look after|protect/.test(t))
+      add("Caring for places", "Circle the pictures that show ways people can care for these places.", "Circle / select", ["recognise"]);
+    if (/pose questions?/.test(t))
+      add("Pose a question", `Look at one of the ${photos}. What would you like to find out about it? Ask one question.`, "Oral / written question", ["pose"]);
+    if (/sort/.test(t))
+      add("Sort observations", `Look at the ${photos}. Sort the features into the groups provided.`, "Sort / classify", ["sort"]);
+    if (/record/.test(t))
+      add("Record information", "Record what you noticed in the photographs using a tally, drawing or labelled table.", "Tally / drawing / table", ["record"]);
+    if (/share a perspective/.test(t))
+      add("Share a perspective", "Which of the places shown would you choose to visit? Tell or show your choice.", "Oral / selected / visual response", ["share"]);
+    if (/draw conclusions?/.test(t))
+      add("Draw a conclusion", "Look at the information you sorted or recorded. What can you tell us about these places?", "Short oral / written conclusion", ["draw conclusions"]);
   }
-  if (subject === "English") {
-    if (/retell|recount|sequenc|event/.test(text)) return {title:"Retelling events",question:"Look at the pictures from the familiar text. Put the main events in order, then retell what happened using words, pictures or an oral response as appropriate to the selected standard.",format:"Sequence / retell",note:cautious};
-    if (/language feature|vocabular|word choice/.test(text) && /identif|recognis/.test(text)) return {title:"Finding language features",question:"Read or listen to the familiar text. Circle the sequencing or descriptive words that you can find.",format:"Circle / highlight",note:cautious};
-    if (/create|writ|compos/.test(text)) return {title:"Creating a text",question:"Create the text required by the selected Achievement Standard for the audience and purpose established in this unit. Use the agreed text structure and language features.",format:"Written / oral / multimodal text",note:"Teacher must specify the exact text type and features from the curriculum and approved assessment."};
+  if (subject.includes("english")) {
+    if (/read,? view and comprehend|making connections between characters/.test(t))
+      add("Connect text and experience", "Look at a picture from the familiar story. Which event does it show? Choose or tell about a similar experience you have had.", "Select / oral response", ["comprehend", "make connections"]);
+    if (/identify the language features|connections between print and images/.test(t))
+      add("Find text features", "Look at a page from the familiar text. Circle a word or phrase that tells us about the picture. Point to the matching part of the image.", "Circle / point / match", ["identify"]);
+    if (/create short written texts/.test(t))
+      add("Create a short retelling", "Create a short written retelling of events from the familiar story. Include images where they help communicate your retelling.", "Short written text / images", ["create"]);
+    if (/retell, report information and state/.test(t)) {
+      add("Retell events", "Use pictures from the familiar story to retell what happened.", "Oral / written retell", ["retell"]);
+      add("Report information", "Choose a place or event explored in the unit. Tell someone one piece of information you learned about it.", "Short oral / written report", ["report"]);
+      add("State thoughts and feelings", "Choose a part of the story. Tell someone what you think or feel about it, and share one key idea.", "Oral / short written response", ["state"]);
+    }
+    if (/use words and phrases from learning and texts/.test(t))
+      add("Use learned vocabulary", "Retell an event from the familiar text using words or phrases practised during this unit.", "Oral / written response", ["use"]);
   }
-  const object = row.text?.trim() || "the selected learning";
-  const formats = {identify:"Circle, tick, label or list",recognise:"Point to, match, tick or circle",describe:"Describe orally or in writing",compare:"Sort or complete a comparison table",sequence:"Number or arrange",explain:"Give a reason orally or in writing",create:"Produce the required response"};
-  return {
-    title:`${subject || "Curriculum"} — ${verb || "evidence"}`,
-    question:`Using the sources and examples from this unit, ${verb || "demonstrate"} the following: ${object}`,
-    format:formats[verb] || "Teacher-selected response mode",
-    note:"Needs teacher refinement: no sufficiently specific, verified question template matched this curriculum aspect. Do not use unchanged as a student question."
-  };
+  if (!results.length) {
+    const verb = verbForAspect(row.text);
+    const formats = {
+      identify: "Circle / tick / label", recognise: "Match / tick / point", compare: "Comparison table / sort",
+      describe: "Brief oral / written description", explain: "Short reason / explanation",
+      create: "Create the specified product", use: "Apply in a response"
+    };
+    add(`${row.subject || "Learning"}: ${verb || "evidence"}`,
+      `Using the sources selected for “${context.title}”, ${verb || "show"} the learning in this aspect: ${row.text}`,
+      formats[verb] || "Teacher-selected format", verbsForAspect(row.text));
+    results[0].note = "REQUIRES TEACHER DESIGN: a verified, context-specific question template is not available for this aspect. Replace this prompt before giving it to students.";
+  }
+  return results;
 }
 
 // ============================================================
@@ -4384,6 +4406,67 @@ function updateDraftQuestion(
 // GTMJ
 // ============================================================
 
+// Observable progression stays within the cognitive demand of the C aspect.
+// For unsupported aspects, explicitly request teacher-written descriptors;
+// never present generic adjectives as validated standards.
+function suggestedDescriptors(row) {
+  const t = String(row.text || "").toLowerCase();
+  if (/recognise the features of familiar places/.test(t)) return {
+    A: "Accurately recognises a range of familiar place features, relevant reasons places are special and appropriate ways to care for them across the provided examples.",
+    B: "Correctly recognises familiar place features, reasons places are special and ways to care for them in the provided examples, with occasional omissions.",
+    D: "Recognises some familiar place features or ways to care for places, but does not yet consistently recognise the other required elements.",
+    E: "Recognises an isolated familiar place feature or caring action with substantial support; other elements are not yet evident."
+  };
+  if (/pose questions.*sort and record/.test(t)) return {
+    A: "Poses relevant, focused questions; sorts observations consistently into suitable groups and records information accurately and clearly.",
+    B: "Poses a relevant question, sorts most observations into suitable groups and records information clearly with minor omissions.",
+    D: "Poses a simple question or sorts and records some information, with incomplete or inconsistent evidence across the requirements.",
+    E: "With support, contributes an initial question or records an isolated observation; the remaining requirements are not yet demonstrated."
+  };
+  if (/share a perspective and draw conclusions/.test(t)) return {
+    A: "Clearly shares a perspective and draws a conclusion that is consistently supported by relevant observations or information.",
+    B: "Shares a clear perspective and draws a relevant conclusion using information from the task.",
+    D: "Shares a perspective or offers a tentative conclusion, but does not yet demonstrate both clearly.",
+    E: "Communicates an initial preference or observation with support; a conclusion is not yet evident."
+  };
+  if (/create short written texts.*retelling stories/.test(t)) return {
+    A: "Creates a coherent short written retelling with a clear event sequence, relevant character or setting details, and purposeful vocabulary; images support meaning where appropriate.",
+    B: "Creates a short written retelling with main events in order, relevant details and some sequencing vocabulary; uses images where appropriate.",
+    D: "Creates a brief written response showing some story events, but the retelling is incomplete or the order is unclear; may rely on images.",
+    E: "Produces isolated words, marks or images relating to the story, with limited connected written retelling."
+  };
+  if (/identify the language features.*print and images/.test(t)) return {
+    A: "Accurately identifies the relevant language features and print–image connections across several examples, including less obvious examples.",
+    B: "Correctly identifies the relevant language features and print–image connections in familiar examples, with minor omissions.",
+    D: "Identifies some relevant features or print–image connections but not yet both consistently.",
+    E: "Points to or selects an isolated feature with support; print–image connections are not yet evident."
+  };
+  if (/retell, report information and state/.test(t)) return {
+    A: "Retells key events coherently, reports accurate relevant information and clearly states thoughts, feelings and key ideas with suitable detail.",
+    B: "Retells main events in order, reports relevant information and states thoughts, feelings and key ideas clearly.",
+    D: "Retells some events or reports an item of information, but thoughts, feelings or key ideas are incomplete or unclear.",
+    E: "Shares an isolated event, fact or feeling with support; the other required responses are not yet evident."
+  };
+  if (/use words and phrases from learning and texts/.test(t)) return {
+    A: "Uses a varied, accurate selection of words and phrases from learning and texts purposefully in the response.",
+    B: "Uses several relevant words and phrases from learning and texts accurately in the response.",
+    D: "Uses an occasional familiar word or phrase from learning and texts, sometimes inaccurately.",
+    E: "Repeats or selects an isolated learned word with support; independent use is not yet evident."
+  };
+  if (/read, view and comprehend/.test(t)) return {
+    A: "Accurately connects characters, settings and events across the text and makes clear, relevant connections to personal experience.",
+    B: "Makes relevant connections between characters, settings and events and links these to a personal experience.",
+    D: "Recognises some characters, settings or events but makes incomplete or unclear connections to the text or personal experience.",
+    E: "Recognises an isolated character, setting or event with support; connections are not yet evident."
+  };
+  return {
+    A: "TEACHER REVIEW REQUIRED — describe observable, consistently accurate evidence of this same curriculum demand; do not introduce a higher-order verb.",
+    B: "TEACHER REVIEW REQUIRED — describe observable evidence that is stronger than C without changing the cognitive demand.",
+    D: "TEACHER REVIEW REQUIRED — describe which parts of the stated demand are emerging or inconsistent.",
+    E: "TEACHER REVIEW REQUIRED — describe the limited or supported evidence observable for this demand."
+  };
+}
+
 function buildGtmj() {
 
   const yearLevel =
@@ -4445,27 +4528,15 @@ function buildGtmj() {
   rows.forEach(
     (row) => {
 
-      gtMj[row.code] =
-        assessment.gtMj
-          ?.[row.code] ||
-        {
-
-          A:
-            `Insightful and thorough evidence that ${descriptorStem(row.text)}`,
-
-          B:
-            `Detailed and effective evidence that ${descriptorStem(row.text)}`,
-
-          C:
-            row.text,
-
-          D:
-            "Partial evidence of the knowledge, understanding and/or skill described in this aspect",
-
-          E:
-            "Fragmented evidence of the knowledge, understanding and/or skill described in this aspect"
-
-        };
+      const existing = assessment.gtMj?.[row.code] || {};
+      const proposed = suggestedDescriptors(row);
+      gtMj[row.code] = {
+        A: existing.A || proposed.A,
+        B: existing.B || proposed.B,
+        C: row.text, // Always the exact Achievement Standard aspect.
+        D: existing.D || proposed.D,
+        E: existing.E || proposed.E
+      };
 
     }
   );
@@ -4704,13 +4775,12 @@ function renderStoredGtmj(
                                             <textarea
                                               rows="4"
                                               data-gtmj-grade="${grade}"
+                                              ${grade === "C" ? "readonly aria-label=\"Exact Achievement Standard aspect (not editable)\"" : ""}
                                               data-gtmj-code="${escapeAttribute(
                                                 row.code
                                               )}"
                                             >${escapeHtml(
-                                              descriptors
-                                                ?.[grade] ||
-                                              ""
+                                              (grade === "C" ? row.text : descriptors?.[grade]) || ""
                                             )}</textarea>
 
                                           </td>
@@ -4758,6 +4828,7 @@ function renderStoredGtmj(
           "input",
           (event) => {
 
+            if (event.target.dataset.gtmjGrade === "C") return;
             const latest =
               getAssessment(
                 yearLevel
