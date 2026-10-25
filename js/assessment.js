@@ -3699,6 +3699,8 @@ function buildDraftAssessment() {
 
   renderDraftAssessment(yearLevel);
   renderQualityCheck(yearLevel);
+  const status = document.getElementById("assessmentGenerationStatus");
+  if (status) status.textContent = `Draft assessment built with ${assessment.draftTask.length} mapped question(s). Review the draft below.`;
 }
 
 
@@ -3717,8 +3719,15 @@ function suggestContextAssessment() {
   const context = assessmentContextProfile();
   const suggestions = rows.flatMap(row => contextualAssessmentQuestions(row, context));
   const existing = assessment.components || [];
+  // Legacy automatically generated placeholders may be replaced, but teacher
+  // authored questions are always retained. Ask before removing any item.
+  const generic = component => {
+    const q = String(component.questionText || component.title || "").trim();
+    return /^(demonstrate the selected learning|recognise and select the relevant features|identify the relevant information or relationships|create a response that demonstrates the selected learning|use the selected knowledge)/i.test(q);
+  };
+  const placeholders = existing.filter(generic);
   if (existing.length && !window.confirm(
-    `Add ${suggestions.length} draft questions to the ${existing.length} existing components?\n\nOK = add without changing existing questions. Cancel = keep everything unchanged.`
+    `Generate ${suggestions.length} context-specific questions?\n\n${placeholders.length} generic placeholder(s) can be replaced; ${existing.length - placeholders.length} existing question(s) will be retained.\n\nOK = proceed. Cancel = make no changes.`
   )) return;
   const additions = suggestions.map(item => ({
     id: crypto.randomUUID(), title: item.title,
@@ -3728,11 +3737,13 @@ function suggestContextAssessment() {
     integrationConnections: [], teacherNotes: item.note,
     showUsed: false
   }));
-  assessment.components = [...existing, ...additions];
+  assessment.components = [...existing.filter(component => !generic(component)), ...additions];
   saveAssessment(year, assessment);
   renderEvidenceMap(year);
   buildDraftAssessment();
-  window.alert(`${additions.length} editable assessment questions added. Review the sources, task wording and curriculum alignment before use. Existing marking-guide edits were preserved.`);
+  const status = document.getElementById("assessmentGenerationStatus");
+  if (status) status.textContent = `${additions.length} suggested questions added; ${placeholders.length} generic placeholders replaced. Review each question and its evidence links.`;
+  window.alert(`${additions.length} editable assessment questions added. ${placeholders.length} generic placeholders replaced. Existing teacher-written questions and marking-guide edits were preserved.`);
 }
 
 function assessmentContextProfile() {
