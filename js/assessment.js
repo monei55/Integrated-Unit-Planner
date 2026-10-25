@@ -17,6 +17,7 @@ import {
 export function initAssessmentPage() {
 
   renderAssessmentYearBuilder();
+  ensureContextSuggestionControl();
 
   document
     .getElementById("addEvidenceComponent")
@@ -70,6 +71,28 @@ export function initAssessmentPage() {
 
 }
 
+
+// Ensure the control exists in the actual dynamically rendered Step 4 page.
+// No separate pages/assessment.html file is required.
+function ensureContextSuggestionControl() {
+  if (document.getElementById("suggestContextAssessment")) return;
+  const map = document.getElementById("evidenceMap");
+  const build = document.getElementById("buildDraftAssessment");
+  const anchor = map || build;
+  if (!anchor) return;
+  const wrapper = document.createElement("div");
+  wrapper.className = "assessment-context-generator";
+  wrapper.style.margin = "16px 0";
+  wrapper.innerHTML = `
+    <button type="button" class="primary" id="suggestContextAssessment">
+      Suggest context-specific assessment questions
+    </button>
+    <p class="helper">Uses the selected curriculum and unit context. Review all suggestions before using them.</p>
+    <p id="assessmentGenerationStatus" role="status" aria-live="polite"></p>
+  `;
+  if (map) map.parentNode.insertBefore(wrapper, map);
+  else build.parentNode.insertBefore(wrapper, build);
+}
 
 // ============================================================
 // ASSESSMENT OVERVIEW GENERATOR
@@ -3653,6 +3676,7 @@ function buildDraftAssessment() {
   );
 
   if (!usableComponents.length) {
+    window.alert("Link at least one assessment question to an Achievement Standard aspect, or select Suggest context-specific assessment questions first.");
     const container = document.getElementById("draftAssessment");
     if (container) {
       container.innerHTML = `
@@ -3735,15 +3759,19 @@ function suggestContextAssessment() {
     cognitiveDemands: item.verbs,
     evidenceFormat: item.format, questionText: item.question,
     integrationConnections: [], teacherNotes: item.note,
-    showUsed: false
+    generatedSuggestion: true, showUsed: false
   }));
-  assessment.components = [...existing.filter(component => !generic(component)), ...additions];
+  const retained = existing.filter(component => !generic(component));
+  const existingKeys = new Set(retained.filter(component => component.generatedSuggestion)
+    .map(component => `${component.selectedStandardCodes?.[0]}|${component.title}`));
+  const fresh = additions.filter(component => !existingKeys.has(`${component.selectedStandardCodes?.[0]}|${component.title}`));
+  assessment.components = [...retained, ...fresh];
   saveAssessment(year, assessment);
   renderEvidenceMap(year);
   buildDraftAssessment();
   const status = document.getElementById("assessmentGenerationStatus");
-  if (status) status.textContent = `${additions.length} suggested questions added; ${placeholders.length} generic placeholders replaced. Review each question and its evidence links.`;
-  window.alert(`${additions.length} editable assessment questions added. ${placeholders.length} generic placeholders replaced. Existing teacher-written questions and marking-guide edits were preserved.`);
+  if (status) status.textContent = `${fresh.length} suggested questions added; ${placeholders.length} generic placeholders replaced. Review each question and its evidence links.`;
+  window.alert(`${fresh.length} editable assessment questions added. ${placeholders.length} generic placeholders replaced. Existing teacher-written questions and marking-guide edits were preserved.`);
 }
 
 function assessmentContextProfile() {
