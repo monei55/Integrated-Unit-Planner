@@ -534,10 +534,18 @@ function buildLessonKnowledgeItem(
   }
 
 
-  return `Week ${lesson.week} — ${lesson.subject}: ${purpose}`;
+  return `${lesson.subject}: recall and explain ${reviewFocus(purpose)}.`;
 
 }
 
+
+function reviewFocus(value) {
+  const text = String(value || "")
+    .replace(/^[^:]{1,40}:\s*/, "")
+    .replace(/^(students need to |students |explicitly teach and practise |teach |model |use )/i, "")
+    .replace(/\s+/g, " ").trim().replace(/[.]+$/, "");
+  return text.length > 145 ? text.slice(0, 142).replace(/\s+\S*$/, "") + "…" : text;
+}
 
 function cleanLearningPurpose(
   purpose
@@ -585,7 +593,7 @@ function buildLessonVocabularyItems(
     )
     .map(
       (term) =>
-        `Week ${lesson.week} — ${lesson.subject}: ${term}`
+        `${lesson.subject}: define and use ${term}`
     );
 
 }
