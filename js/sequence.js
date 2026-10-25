@@ -4141,7 +4141,7 @@ function suggestLessonContent(
     // --------------------------------------------------------
 
     purpose:
-      curriculumSuggestion.purpose ||
+      conciseLearningFocus(curriculumSuggestion.purpose, weekNumber, totalWeeks) ||
       subjectPriority?.focus ||
       defaultLessonPurpose(
         subject,
@@ -4157,7 +4157,7 @@ function suggestLessonContent(
     // --------------------------------------------------------
 
     activity:
-      curriculumSuggestion.activity ||
+      progressiveLearningPoints(curriculumSuggestion.purpose, curriculumSuggestion.phase || weekPhase, weekNumber, totalWeeks) ||
       suggestedLearningExperience(
         curriculumSuggestion.phase ||
         weekPhase,
@@ -4172,7 +4172,7 @@ function suggestLessonContent(
     // --------------------------------------------------------
 
     evidence:
-      curriculumSuggestion.evidence ||
+      conciseEvidencePoint(curriculumSuggestion.evidence) ||
       suggestedLessonEvidence(
         curriculumSuggestion.phase ||
         weekPhase
@@ -4186,7 +4186,7 @@ function suggestLessonContent(
     // --------------------------------------------------------
 
     integration:
-      curriculumSuggestion.integration ||
+      conciseIntegrationPoint(curriculumSuggestion.integration || suggestedIntegrationConnection(subject, subjectRows)) ||
       suggestedIntegrationConnection(
         subject,
         subjectRows
@@ -4196,6 +4196,42 @@ function suggestLessonContent(
 
   };
 
+}
+
+
+// Concise, editable suggestions. No invented topic-specific content is added.
+function conciseLearningFocus(value) {
+  return String(value || "")
+    .replace(/^[^:]{1,45}:\s*explicitly teach and practise the learning required by this Achievement Standard aspect\s*[—–-]\s*/i, "")
+    .replace(/^explicitly teach and practise the learning required by this Achievement Standard aspect\s*[—–-]\s*/i, "")
+    .replace(/\s+/g, " ").trim();
+}
+function progressiveLearningPoints(value, phase, week, total) {
+  const focus = conciseLearningFocus(value).replace(/[.]+$/, "");
+  if (!focus) return "";
+  const stages = [
+    `• Introduce and unpack: ${focus}.\n• Identify key vocabulary and examples.`,
+    `• Model the thinking and features of: ${focus}.\n• Compare examples and non-examples.`,
+    `• Jointly practise: ${focus}.\n• Discuss choices and improve responses using feedback.`,
+    `• Apply with reduced scaffolding: ${focus}.\n• Explain or justify choices.`,
+    `• Independently demonstrate: ${focus}.\n• Check and refine against the success criteria.`
+  ];
+  const progress = total <= 1 ? 2 : (week - 1) / (total - 1);
+  const index = Math.min(4, Math.floor(progress * 4 + 0.0001));
+  return stages[index];
+}
+function conciseEvidencePoint(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const short = text.replace(/^Use (a |an |one )?/i, "Check: ").replace(/^Students /i, "Check: students ");
+  return "• " + short.replace(/\s+/g, " ");
+}
+function conciseIntegrationPoint(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  if (/HASS, Science or other integrated-unit texts/i.test(text)) return "• Use integrated-unit texts to develop subject knowledge, vocabulary and reading skills.";
+  if (/Develop HASS knowledge through/i.test(text)) return "• Use purposeful reading, images and discussion to develop HASS knowledge through English.";
+  return "• " + text.replace(/\s+/g, " ");
 }
 
 // ============================================================
@@ -4243,8 +4279,7 @@ function buildCurriculumLessonSuggestion(
 
   const row =
     rows[
-      lessonIndex %
-      rows.length
+      Math.min(rows.length - 1, Math.floor(((weekNumber - 1) + (lessonIndex + 0.5) / Math.max(1, lessonCount)) / Math.max(1, totalWeeks) * rows.length))
     ];
 
 
@@ -4332,8 +4367,7 @@ function buildEnglishCurriculumLesson(
 
   const row =
     orderedRows[
-      lessonIndex %
-      orderedRows.length
+      Math.min(orderedRows.length - 1, Math.floor(((weekNumber - 1) + (lessonIndex + 0.5) / Math.max(1, lessonCount)) / Math.max(1, totalWeeks) * orderedRows.length))
     ] ||
     rows[0];
 
