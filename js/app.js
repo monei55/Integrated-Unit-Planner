@@ -278,7 +278,7 @@ async function initialisePage(
 
       const module =
         await import(
-          "./assessment.js"
+          "./assessment.js?v=20261026-v3"
         );
 
       module.initAssessmentPage();
