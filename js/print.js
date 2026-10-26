@@ -3156,42 +3156,18 @@ function hasDailyReview() {
 
 function getDailyReviewForWeek(weekNumber) {
   const daily = unitPlan.daily || {};
-  const target = String(weekNumber).replace(/\D/g, "");
-  const fields = ["weeklyReview", "weeklyReviewFocuses", "weeklyReviewFocus", "weeklyFocuses", "reviewFocuses", "reviewFocus", "weeklyFocus", "reviewPoints", "focuses", "dotPoints", "points", "summary"];
-  const format = (value) => {
-    const lines = Array.isArray(value) ? value.flatMap(x => String(x ?? "").split(/\n+/)) : typeof value === "string" ? value.split(/\n+/) : [];
-    const seen = new Set();
-    return lines.map(x => x.replace(/^\s*[•*\-]\s*/, "").trim()).filter(x => {
-      const key = x.toLowerCase();
-      if (!x || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    }).slice(0, 5).map(x => `• ${x}`).join("\n");
-  };
-  const read = (item) => {
-    if (typeof item === "string" || Array.isArray(item)) return format(item);
-    if (!item || typeof item !== "object") return "";
-    for (const field of fields) {
-      const value = format(item[field]);
-      if (value) return value;
-    }
-    return "";
-  };
-  const collections = [daily.weeklyPlan, daily.weeklyReviews, daily.weeklyReview, daily.weeklyFocuses, daily.reviewByWeek, daily.weeks];
-  for (const collection of collections) {
-    if (Array.isArray(collection)) {
-      const index = collection.findIndex((item, i) => {
-        const value = item?.week ?? item?.number ?? item?.weekNumber ?? item?.weekIndex;
-        return value == null ? String(i + 1) === target : String(value).replace(/\D/g, "") === target;
-      });
-      if (index >= 0) {
-        const value = read(collection[index]);
-        if (value) return value;
-      }
-    } else if (collection && typeof collection === "object") {
-      const value = read(collection[weekNumber] ?? collection[`week${weekNumber}`] ?? collection[`Week ${weekNumber}`]);
-      if (value) return value;
-    }
+  const weekly = Array.isArray(daily.weeklyPlan) ? daily.weeklyPlan : [];
+  const matching = weekly.find(item => String(item.week ?? item.number ?? item.weekNumber) === String(weekNumber));
+  if (matching) {
+    // Prefer the new concise weekly field over legacy Monday–Friday entries.
+    const summary = matching.weeklySummary || matching.weeklyReview || matching.reviewFocus || matching.weeklyFocus || matching.summary || matching.review || matching.focus || matching.dotPoints || matching.points;
+    if (typeof summary === "string" && summary.trim()) return summary.trim();
+    if (Array.isArray(summary) && summary.length) return summary.filter(Boolean).join("\n");
+    const legacy = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+      .flatMap(day => String(matching[day] || "").split("\n"))
+      .map(line => line.replace(/^\s*[•\-]\s*/, "").replace(/^(Monday|Tuesday|Wednesday|Thursday|Friday):\s*/i, "").trim())
+      .filter(Boolean);
+    return unique(legacy).slice(0, 5).map(line => `• ${line}`).join("\n");
   }
   return "";
 }
