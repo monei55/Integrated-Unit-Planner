@@ -1214,147 +1214,40 @@ function priorityKey(
 
 
 function renderSavedTeachingPriorities() {
-
-  const container =
-    document.getElementById(
-      "teachingPriorities"
-    );
-
-
-  if (
-    !container
-  ) {
-
+  const container = document.getElementById("teachingPriorities");
+  if (!container) return;
+  const priorities = Array.isArray(unitPlan.sequence?.teachingPriorities)
+    ? unitPlan.sequence.teachingPriorities : [];
+  if (!priorities.length) {
+    container.innerHTML = '<div class="empty">Select <strong>Suggest priorities</strong> to create teaching focuses.</div>';
     return;
-
   }
-
-
-  const priorities =
-    Array.isArray(
-      unitPlan.sequence
-        ?.teachingPriorities
-    )
-      ? unitPlan.sequence
-          .teachingPriorities
-      : [];
-
-
-  if (
-    !priorities.length
-  ) {
-
-    container.innerHTML = `
-
-      <div class="empty">
-
-        Select
-
-        <strong>
-          Suggest priorities
-        </strong>
-
-        to identify the learning that may require
-        explicit teaching, modelling, guided practice
-        and independent application.
-
-      </div>
-
-    `;
-
-    return;
-
-  }
-
-
-  const order = [
-
-    "Explicit teaching",
-    "Modelled instruction",
-    "Guided practice",
-    "Independent application"
-
-  ];
-
-
-  const grouped =
-    groupBy(
-      priorities,
-      (item) =>
-        item.type ||
-        "Teaching priority"
-    );
-
-
-  container.innerHTML =
-    order
-      .filter(
-        (type) =>
-          grouped[
-            type
-          ]
-            ?.length
-      )
-      .map(
-        (type) => `
-
-          <section class="priority-group">
-
-            <div class="priority-group-head">
-
-              <h4>
-                ${escapeHtml(
-                  type
-                )}
-              </h4>
-
-              <span>
-
-                ${grouped[
-                  type
-                ].length}
-
-                priorit${
-                  grouped[
-                    type
-                  ].length === 1
-                    ? "y"
-                    : "ies"
-                }
-
-              </span>
-
-            </div>
-
-
-            <div class="priority-group-list">
-
-              ${
-                grouped[
-                  type
-                ]
-                  .map(
-                    (priority) =>
-                      teachingPriorityHtml(
-                        priority
-                      )
-                  )
-                  .join("")
-              }
-
-            </div>
-
-          </section>
-
-        `
-      )
-      .join("");
-
-
-  bindTeachingPriorityEvents();
-
+  const subjects = groupBy(priorities, item => item.subject || "Integrated");
+  container.innerHTML = Object.entries(subjects).map(([subject, items]) => `
+    <section class="priority-group" style="margin-bottom:14px;">
+      <h4>${escapeHtml(subject)}</h4>
+      <textarea class="grouped-priority-text" data-subject="${escapeAttribute(subject)}"
+        rows="${Math.max(4, items.length + 1)}" style="width:100%;line-height:1.7;"
+        aria-label="${escapeAttribute(subject)} teaching priorities">${escapeHtml(items.map(item =>
+          "• " + String(item.focus || "").replace(/^\s*[•-]\s*/, "").trim()).join("\n"))}</textarea>
+      <p style="font-size:.8em;opacity:.75;">One dot point per priority. Edit directly; changes save automatically.</p>
+    </section>`).join("");
+  container.querySelectorAll(".grouped-priority-text").forEach(area => {
+    area.addEventListener("change", () => {
+      const subject = area.dataset.subject;
+      const lines = area.value.split(/\n/).map(v => v.replace(/^\s*[•-]\s*/, "").trim()).filter(Boolean);
+      const saved = Array.isArray(unitPlan.sequence?.teachingPriorities)
+        ? [...unitPlan.sequence.teachingPriorities] : [];
+      const old = saved.filter(item => item.subject === subject);
+      const others = saved.filter(item => item.subject !== subject);
+      const updated = lines.map((focus, i) => ({
+        ...(old[i] || makePriority("Explicit teaching", subject, "", "", "Curriculum + assessment")),
+        focus: "• " + focus
+      }));
+      updateUnitPlan("sequence.teachingPriorities", [...others, ...updated]);
+    });
+  });
 }
-
 
 function teachingPriorityHtml(priority) {
   return `<article class="teaching-priority-card" data-priority="${escapeAttribute(priority.id)}"
@@ -2251,138 +2144,53 @@ function renderSavedWeeklySequence() {
 }
 
 
-function weeklySequenceHtml(
-  week
-) {
-
-  return `
-
-    <section
-      class="week-shell"
-      data-week="${escapeAttribute(
-        week.id
-      )}"
-    >
-
-      <div class="week-shell-head">
-
-        <div>
-
-          <h3>
-            Week
-            ${escapeHtml(
-              week.number
-            )}
-          </h3>
-
-          <input
-            class="week-focus"
-            value="${escapeAttribute(
-              week.focus ||
-              ""
-            )}"
-            placeholder="Weekly learning focus..."
-          >
-
+function weeklySequenceHtml(week) {
+  const grouped = groupBy(week.lessons || [], lesson => lesson.subject || "Integrated");
+  const subjectHtml = Object.entries(grouped).map(([subject, lessons]) => {
+    const first = lessons[0];
+    const points = lessons.map((lesson, i) => {
+      const raw = String(lesson.activity || lesson.purpose || "").trim();
+      const line = raw.split(/\n/).find(x => x.trim()) || "";
+      return `${i + 1}. ${line.replace(/^\s*[•-]\s*/, "").replace(/^\s*\d+[.)]\s*/, "")}`;
+    }).join("\n");
+    return `<section class="weekly-subject" data-subject="${escapeAttribute(subject)}"
+      style="padding:14px 0;border-bottom:1px solid #d7e0eb;">
+      <h4>${escapeHtml(subject)} — ${lessons.length} lesson${lessons.length === 1 ? "" : "s"}</h4>
+      <label>Learning intention
+        <textarea class="subject-purpose" rows="2" style="width:100%;">${escapeHtml(first.purpose || "")}</textarea>
+      </label>
+      <label>Teaching and learning — one dot point per lesson
+        <textarea class="subject-points" rows="${Math.max(3, lessons.length + 1)}" style="width:100%;line-height:1.7;">${escapeHtml(points)}</textarea>
+      </label>
+      <label>Formative assessment opportunity
+        <textarea class="subject-evidence" rows="2" style="width:100%;">${escapeHtml(first.evidence || "")}</textarea>
+      </label>
+    </section>`;
+  }).join("");
+  const integration = (week.lessons || []).map(l => l.integration).find(Boolean) || "";
+  return `<section class="week-shell" data-week="${escapeAttribute(week.id)}">
+    <div class="week-shell-head"><div><h3>Week ${escapeHtml(week.number)}</h3>
+      <input class="week-focus" value="${escapeAttribute(week.focus || "")}" placeholder="Weekly learning focus..."></div>
+      <label>Teaching phase<select class="week-phase">${teachingPhaseOptions(week.phase)}</select></label>
+    </div>
+    <div style="padding:12px 16px;">${subjectHtml}
+      <label>Integration connection
+        <textarea class="week-integration-summary" rows="2" style="width:100%;">${escapeHtml(integration)}</textarea>
+      </label>
+      <details style="margin-top:14px;"><summary style="cursor:pointer;font-weight:600;">Edit individual lessons and additional planning details</summary>
+        <div class="lesson-stack">${(week.lessons || []).map((lesson, i) => lessonCardHtml(lesson, i)).join("")}</div>
+        <div class="week-add-lesson"><button type="button" class="mini add-week-lesson">+ Add lesson / learning experience</button></div>
+        <div class="weekly-support">
+          ${weekSupportTextarea("Formative check / evidence", "week-formative", week.formativeCheck, "Weekly formative check...")}
+          ${weekSupportTextarea("Vocabulary / terminology", "week-vocabulary", week.vocabulary, "Key vocabulary...")}
+          ${weekSupportTextarea("Adjustments / scaffolds", "week-adjustments", week.adjustments, "Adjustments...")}
+          ${weekSupportTextarea("Resources / texts", "week-resources", week.resources, "Resources...")}
+          ${weekSupportTextarea("Teacher notes", "week-notes", week.notes, "Notes...")}
         </div>
-
-
-        <label>
-
-          Teaching phase
-
-          <select class="week-phase">
-
-            ${teachingPhaseOptions(
-              week.phase
-            )}
-
-          </select>
-
-        </label>
-
-      </div>
-
-
-      <div class="lesson-stack">
-
-        ${
-          week.lessons
-            .map(
-              (lesson, index) =>
-                lessonCardHtml(
-                  lesson,
-                  index
-                )
-            )
-            .join("")
-        }
-
-      </div>
-
-
-      <div class="week-add-lesson">
-
-        <button
-          type="button"
-          class="mini add-week-lesson"
-        >
-          + Add lesson / learning experience
-        </button>
-
-      </div>
-
-
-      <div class="weekly-support">
-
-        ${weekSupportTextarea(
-          "Formative check / evidence",
-          "week-formative",
-          week.formativeCheck,
-          "How will you check what students know, understand or can do this week?"
-        )}
-
-        ${weekSupportTextarea(
-          "Vocabulary / terminology",
-          "week-vocabulary",
-          week.vocabulary,
-          "Key Tier 2, Tier 3 or subject-specific vocabulary..."
-        )}
-
-        ${weekSupportTextarea(
-          "Adjustments / scaffolds",
-          "week-adjustments",
-          week.adjustments,
-          "Planned supports, scaffolds or access adjustments..."
-        )}
-
-      </div>
-
-
-      <div class="weekly-support">
-
-        ${weekSupportTextarea(
-          "Resources / texts",
-          "week-resources",
-          week.resources,
-          "Texts, sources, visuals, manipulatives, digital resources..."
-        )}
-
-        ${weekSupportTextarea(
-          "Teacher notes",
-          "week-notes",
-          week.notes,
-          "Planning notes, changes or reminders..."
-        )}
-
-      </div>
-
-    </section>
-
-  `;
-
+      </details>
+    </div>
+  </section>`;
 }
-
 
 function weekSupportTextarea(
   heading,
@@ -2805,6 +2613,41 @@ function bindWeeklySequenceEvents() {
 
       }
     );
+
+  document.querySelectorAll(".week-shell").forEach(section => {
+    const weekId = section.dataset.week;
+    const saveSubject = (subject, field, value) => {
+      const weeks = cloneWeeks();
+      const week = weeks.find(w => w.id === weekId);
+      if (!week) return;
+      const lesson = week.lessons.find(l => (l.subject || "Integrated") === subject);
+      if (!lesson) return;
+      lesson[field] = value;
+      saveWeeks(weeks);
+    };
+    section.querySelectorAll(".weekly-subject").forEach(group => {
+      const subject = group.dataset.subject;
+      [[".subject-purpose", "purpose"], [".subject-evidence", "evidence"]].forEach(([selector, field]) => {
+        group.querySelector(selector)?.addEventListener("change", e => saveSubject(subject, field, e.target.value));
+      });
+      group.querySelector(".subject-points")?.addEventListener("change", e => {
+        const weeks = cloneWeeks();
+        const week = weeks.find(w => w.id === weekId);
+        if (!week) return;
+        const lessons = week.lessons.filter(l => (l.subject || "Integrated") === subject);
+        const lines = e.target.value.split(/\n/).map(v => v.replace(/^\s*(?:\d+[.)]|[•-])\s*/, "").trim());
+        lessons.forEach((lesson, i) => { if (i < lines.length) lesson.activity = "• " + lines[i]; });
+        saveWeeks(weeks);
+      });
+    });
+    section.querySelector(".week-integration-summary")?.addEventListener("change", e => {
+      const weeks = cloneWeeks();
+      const week = weeks.find(w => w.id === weekId);
+      if (!week || !week.lessons.length) return;
+      week.lessons[0].integration = e.target.value;
+      saveWeeks(weeks);
+    });
+  });
 
 }
 
