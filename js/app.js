@@ -292,7 +292,7 @@ async function initialisePage(
 
       const module =
         await import(
-          "./sequence.js?v=20261026-grouped3"
+          "./sequence.js?v=20261026-grouped4"
         );
 
       module.initSequencePage();
