@@ -344,18 +344,20 @@ async function initialisePage(
     }
 
 
-    case "review-print": {
 
-      const module =
-        await import(
-          "./print.js"
-        );
+case "review-print": {
 
-      module.initPrintPage();
+  const module =
+    await import(
+      "./print.js?v=20261026-print2"
+    );
 
-      break;
+  module.initPrintPage();
 
-    }
+  break;
+
+}
+
 
   }
 
