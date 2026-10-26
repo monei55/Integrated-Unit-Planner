@@ -345,15 +345,15 @@ async function initialisePage(
 
 
 
-case "review-print": {
-  const module = await import("./print.js?v=20261026-as-fix");
-  module.initPrintPage();
-  break;
-}
+    case "review-print": {
+      const module = await import("./print.js?v=20261026-as-fix");
+      module.initPrintPage();
+      break;
+    }
 
-  }
-}
+  } // Closes switch
 
+} // Closes initialisePage function
 
 // ============================================================
 // HEADER ACTIONS
