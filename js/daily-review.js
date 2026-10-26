@@ -1997,40 +1997,72 @@ function dailyWeekHtml(week) {
 
 // Build only from lessons in earlier weeks. Week 1 uses prerequisites.
 function conciseWeeklyReview(weekNumber, lessons) {
-  if (weekNumber === 1) return bulletText([
-    "Name features of familiar places.",
-    "Describe a familiar place using known vocabulary.",
-    "Sequence a familiar experience: first, next, last."
+  const previous = lessons.filter(lesson => lesson.week < weekNumber);
+  if (!previous.length) return bulletText([
+    "Name familiar places and features.",
+    "Sort features seen in photographs.",
+    "Describe a familiar place using known words.",
+    "Retell a familiar experience in order."
   ]);
-  const earlier = lessons.filter(lesson => lesson.week < weekNumber);
-  const recent = earlier.filter(lesson => lesson.week === weekNumber - 1);
-  const spaced = earlier.filter(lesson => lesson.week < weekNumber - 1);
-  const extract = list => {
-    const seen = new Set();
-    const result = [];
-    list.forEach(lesson => {
-      const fragments = String(lesson.activity || "").split(/\n|•/).map(s => s.trim()).filter(Boolean);
-      const choices = fragments.length ? fragments : [lesson.purpose || ""];
-      for (const raw of choices) {
-        let value = raw.replace(/^[-•\s]+/, "").replace(/^(introduce|model|practise together|apply independently|review and check):?\s*/i, "").trim();
-        if (!value || value.length > 115 || /achievement standard|learning required|explicitly teach and revisit|student response against the learning focus/i.test(value)) continue;
-        const key = value.toLowerCase().replace(/[^a-z0-9]/g, "");
-        if (!seen.has(key)) { seen.add(key); result.push(value.replace(/[.]+$/, "") + "."); }
+
+  // Review taught CONTENT, not instructional phases or achievement-standard wording.
+  const lastWeek = lessons.filter(lesson => lesson.week === weekNumber - 1);
+  const spaced = lessons.filter(lesson => lesson.week < weekNumber - 1);
+  const recentItems = extractReviewContent(lastWeek);
+  const spacedItems = extractReviewContent(spaced);
+  const selected = [];
+  const seen = new Set();
+  function add(item) {
+    if (!item || seen.has(item.key) || selected.length >= 5) return;
+    seen.add(item.key);
+    selected.push(item.text);
+  }
+  // Draw from both subjects where available, then distribute distinct content.
+  for (const subject of ["HASS", "English"]) {
+    add(recentItems.find(item => item.subject.toLowerCase().includes(subject.toLowerCase())));
+  }
+  for (const item of recentItems) add(item);
+  if (spacedItems.length) {
+    const start = (weekNumber - 3) % spacedItems.length;
+    for (let i = 0; i < spacedItems.length; i++) {
+      const item = spacedItems[(start + i) % spacedItems.length];
+      if (!seen.has(item.key)) {
+        if (selected.length >= 5) selected.pop();
+        add(item);
         break;
       }
-    });
-    return result;
-  };
-  const recentPoints = extract(recent);
-  const spacedPoints = extract(spaced);
-  const points = [...recentPoints.slice(0, 3)];
-  if (spacedPoints.length) points.push(spacedPoints[(weekNumber - 2) % spacedPoints.length]);
-  // A final item can be selected from another distinct prior focus.
-  for (const point of [...recentPoints.slice(3), ...spacedPoints]) {
-    if (points.length >= 5) break;
-    if (!points.includes(point)) points.push(point);
+    }
   }
-  return bulletText(points.length ? points : ["Select previously taught knowledge to retrieve this week."]);
+  if (!selected.length) selected.push("Recall and explain one idea taught last week.");
+  return bulletText(selected);
+}
+
+function extractReviewContent(lessons) {
+  const seen = new Set();
+  const items = [];
+  for (const lesson of lessons) {
+    const source = [lesson.purpose, lesson.activity].filter(Boolean).join(" ").toLowerCase();
+    const subject = String(lesson.subject || "Integrated");
+    const patterns = [
+      [/natural.{0,40}managed.{0,40}constructed|classify.{0,60}features/, "Sort natural, managed and constructed features.", "place-features"],
+      [/special.{0,60}places|care for.{0,40}places/, "Explain why a familiar place is special and how to care for it.", "place-significance"],
+      [/photographs|maps|illustrations|images/, "Locate a detail in a photograph, map or illustration.", "visual-evidence"],
+      [/temporal connectives|retell|sequence.{0,40}events/, "Retell events in order using first, next and finally.", "retelling"],
+      [/vocabulary|describ.{0,35}words|word choice/, "Recall and use descriptive vocabulary from the unit text.", "vocabulary"],
+      [/combine sentences|coherent response|construct.{0,40}sentences/, "Combine two ideas into a clear sentence.", "sentences"],
+      [/print.{0,30}images|words.{0,30}illustrations|text.{0,30}images/, "Explain how words and pictures communicate information.", "text-image"],
+      [/sources|evidence|locating.{0,30}information/, "Find one piece of evidence in a familiar source.", "sources"],
+      [/questions|questioning|recording information/, "Ask a question and record one observation.", "inquiry"],
+      [/compare|similarit|differen/, "Compare two familiar places or descriptions.", "comparison"]
+    ];
+    for (const [regex, text, key] of patterns) {
+      if (regex.test(source) && !seen.has(key)) {
+        seen.add(key);
+        items.push({ text, key, subject });
+      }
+    }
+  }
+  return items;
 }
 
 function dailyDayHtml(
