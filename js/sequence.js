@@ -3159,38 +3159,78 @@ function suggestWeeklySequence() {
 }
 
 
+// Content-first lesson suggestions: the lesson index selects a distinct
+// curriculum focus; instructional phase is metadata, not the activity text.
+function contentFocusBank(subject, rows) {
+  const text = rows.map(row => String(row.text || "")).join(" ").toLowerCase();
+  const english = /english/i.test(subject);
+  const hass = /hass|humanities|geograph|history/i.test(subject);
+  const bank = [];
+  const add = (condition, ...items) => { if (condition) bank.push(...items); };
+  if (english) {
+    add(/read|view|comprehen|text|image|print/, 
+      ["Identify information conveyed by illustrations and print.", "Locate details in a familiar text to answer literal questions."],
+      ["Explain how words and illustrations work together to convey meaning.", "Match a written detail to supporting visual evidence."]);
+    add(/vocab|language|word|describ/, 
+      ["Explore precise words used to describe the unit topic.", "Sort and explain topic vocabulary using examples."],
+      ["Choose vocabulary to describe a specific example from the text.", "Explain why a chosen word fits its context."]);
+    add(/sequence|event|recount|narrativ|story/,
+      ["Identify key events and their order in a familiar text.", "Sequence events using evidence from the text."],
+      ["Retell key events using temporal connectives.", "Check that the retell follows the text's sequence."]);
+    add(/sentenc|writ|creat|construct|communicat|present/,
+      ["Compose a clear sentence using details from the unit text.", "Check the sentence communicates one complete idea."],
+      ["Combine sentences to develop a short, coherent response.", "Revise word choice and sentence clarity."],
+      ["Create a response for the assessed purpose and audience.", "Check content and conventions against the success criteria."]);
+  } else if (hass) {
+    add(/place|natural|managed|constructed|feature|environment/,
+      ["Identify features of familiar places using photographs.", "Name and describe visible place features."],
+      ["Distinguish natural, managed and constructed features.", "Classify examples and explain the classification."],
+      ["Compare features of two places using photographs or maps.", "Record a meaningful similarity and difference."],
+      ["Explain why a familiar place matters to people.", "Support an explanation with a specific example."]);
+    add(/question|observ|collect|record|data|source|map/,
+      ["Develop a question about a familiar place or source.", "Identify what information would answer it."],
+      ["Gather observations from photographs, maps or other sources.", "Record findings using labels, drawings or a simple table."],
+      ["Organise collected information into meaningful categories.", "Check that the categories match the evidence."]);
+    add(/care|protect|propos|conclusion|action/,
+      ["Identify ways people care for places.", "Match an action to the feature it protects."],
+      ["Suggest a practical action to care for a familiar place.", "Explain why that action is appropriate."]);
+    add(/past|present|change|continuity|history/,
+      ["Identify features of a place in the past and present.", "Use sources to notice changes."],
+      ["Describe one change and one feature that stayed the same.", "Use evidence from the sources."]);
+  }
+  if (!bank.length) {
+    const safe = rows.map(row => String(row.text || "").trim())
+      .filter(x => x && x.length < 145 && !/achievement standard aspect|students identify the knowledge/i.test(x));
+    safe.slice(0, 5).forEach(x => bank.push([x.replace(/[.]+$/, "") + ".", "Use a relevant example to demonstrate this learning."]));
+  }
+  return bank;
+}
+
 function suggestLessonContent(lesson, weekPhase, phasePriorities, subjectRows,
   lessonIndex = 0, subjectLessonCount = 1, weekNumber = 1, totalWeeks = 10) {
   const subject = lesson.subject || "Integrated";
   const rows = subjectRows[subject] || [];
-  const targets = conciseTeachingTargets(rows);
-  const stage = ["Introduce", "Model", "Practise together", "Apply", "Review and check"];
-  const position = subjectLessonCount > 1
-    ? Math.min(4, Math.floor(lessonIndex * 5 / subjectLessonCount))
-    : Math.min(4, Math.floor((weekNumber - 1) * 5 / Math.max(1, totalWeeks)));
-  const targetIndex = rows.length
-    ? Math.min(targets.length - 1, Math.floor(((weekNumber - 1) * subjectLessonCount + lessonIndex) / Math.max(1, totalWeeks * subjectLessonCount) * targets.length))
-    : 0;
-  const target = targets[targetIndex] || "Teach and practise the selected assessment skill.";
-  const clean = target.replace(/[.]$/, "");
-  const action = [
-    `Introduce ${clean.charAt(0).toLowerCase() + clean.slice(1)}.`,
-    `Model ${clean.charAt(0).toLowerCase() + clean.slice(1)}.`,
-    `Practise together: ${clean.charAt(0).toLowerCase() + clean.slice(1)}.`,
-    `Apply independently: ${clean.charAt(0).toLowerCase() + clean.slice(1)}.`,
-    `Review and check: ${clean.charAt(0).toLowerCase() + clean.slice(1)}.`
-  ][position];
-  const phase = ["Explicit teaching", "Modelled instruction", "Guided practice", "Independent application", "Review / consolidation"][position];
-  // Keep teacher-written content; fill only empty fields. One bullet per allocated lesson.
+  const bank = contentFocusBank(subject, rows);
+  const slot = (weekNumber - 1) * subjectLessonCount + lessonIndex;
+  // Move through the content bank over the unit; avoid repeating one target
+  // across five lessons merely to cycle through gradual-release phases.
+  const item = bank.length ? bank[slot % bank.length] : null;
+  const focus = item ? item[0] : "Specify a content focus from the selected curriculum and assessment.";
+  const task = item ? item[1] : "Add the precise knowledge, text or skill students will learn.";
+  const phase = lesson.phase || weekPhase || "Explicit teaching";
+  const evidence = /identify|locate|distinguish|classify|sequence/i.test(focus)
+    ? "• Check accuracy using a short identification, sorting or sequencing task."
+    : /explain|compare|why/i.test(focus)
+      ? "• Listen for an accurate explanation supported by an example."
+      : "• Check one brief response against the intended content focus.";
   return {...lesson,
-    phase: lesson.phase || phase,
-    purpose: lesson.purpose || clean + ".",
-    activity: lesson.activity || "• " + action,
-    evidence: lesson.evidence || "• Check student response against the learning focus.",
+    phase,
+    purpose: lesson.purpose || focus,
+    activity: lesson.activity || "• " + focus + "\n• " + task,
+    evidence: lesson.evidence || evidence,
     integration: lesson.integration || ""
   };
 }
-
 
 function conciseLearningFocus(value) {
   return String(value || "")
