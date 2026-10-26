@@ -3856,7 +3856,7 @@ function verbsForAspect(text = "") {
 }
 
 function contextualAssessmentQuestions(row, context) {
-  const t = String(row.text || "").toLowerCase();
+  const t = String(row.text || "").toLowerCase().replace(/\s+/g, " ").trim();
   const subject = String(row.subject || "").toLowerCase();
   const results = [];
   const photos = context.journey ? "photographs of places explored during the journey" : "photographs of familiar places";
@@ -4494,6 +4494,8 @@ function updateDraftQuestion(
 // ============================================================
 // GTMJ
 // ============================================================
+const GTMJ_GENERATOR_VERSION = "2026-10-26-v3";
+console.info("Integrated Unit Planner GTMJ generator", GTMJ_GENERATOR_VERSION);
 
 // Observable progression stays within the cognitive demand of the C aspect.
 // For unsupported aspects, explicitly request teacher-written descriptors;
@@ -4562,14 +4564,18 @@ function suggestedDescriptors(row, assessment) {
     return levels("Retells events coherently, reports accurate information and clearly states thoughts, feelings and key ideas with relevant detail.", "Retells main events in order, reports relevant information and states thoughts, feelings and key ideas clearly.", "Retells some events or reports information, but the thoughts, feelings or key ideas are incomplete.", "Shares an isolated event, fact or feeling with support; other requirements are not yet evident.");
   if (/use words and phrases from learning and texts/.test(t))
     return levels("Purposefully uses a varied and accurate selection of words and phrases from learning and texts.", "Uses several relevant words and phrases from learning and texts accurately.", "Uses an occasional familiar word or phrase, sometimes inaccurately.", "Repeats or selects an isolated learned word with prompting; independent use is not yet evident.");
-  // Fallback: use the actual demand rather than a generic placeholder. These
-  // drafts remain editable, and no unsupported curriculum verb is introduced.
+  // A general but usable fallback for previously unrecognised standards.
+  // Preserve C verbatim and distinguish evidence rather than teacher instructions.
   const demand = String(row.text || "the selected aspect").replace(/\s+/g, " ").trim();
+  const verbs = verbsForAspect(demand);
+  const actions = verbs.length ? verbs.map(v => studentEvidencePhrase(v)).filter(Boolean) : [];
+  const action = actions.length ? joinReadableList(actions) : "demonstrate the named knowledge and skills";
   return levels(
-    `Demonstrates all parts of this aspect accurately and consistently in the assessment evidence: ${demand}`,
-    `Demonstrates all main parts of this aspect accurately, with a minor omission in the assessment evidence: ${demand}`,
-    `Demonstrates some parts of this aspect, but other required parts are missing or inconsistent: ${demand}`,
-    `Demonstrates an isolated part of this aspect with prompting; most required parts are not yet evident: ${demand}`);
+    `Independently and accurately ${action}; addresses every part of the selected aspect and uses relevant examples from the assessment task.`,
+    `Accurately ${action}; addresses the main parts of the selected aspect with a minor omission.`,
+    `Shows some evidence of being able to ${action}, but one or more required parts are missing or inaccurate.`,
+    `With support, shows an initial example of being able to ${action}; the remaining requirements are not yet demonstrated.`);
+
 }
 
 function buildGtmj() {
@@ -4627,6 +4633,7 @@ function buildGtmj() {
   });
 
   assessment.gtMj = guide;
+  assessment.gtMjGeneratorVersion = GTMJ_GENERATOR_VERSION;
   saveAssessment(yearLevel, assessment);
   renderStoredGtmj(yearLevel);
   renderQualityCheck(yearLevel);
@@ -4732,8 +4739,9 @@ function renderStoredGtmj(
         </h3>
 
         <span>
-          One marking guide table per
-          learning area — editable
+          One marking guide table per learning area — editable
+          · Generator ${GTMJ_GENERATOR_VERSION}
+          ${assessment.gtMjGeneratorVersion !== GTMJ_GENERATOR_VERSION ? "· Saved guide from earlier version — click Build Marking Guide and OK to refresh" : ""}
         </span>
 
       </div>
