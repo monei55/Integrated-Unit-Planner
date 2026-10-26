@@ -292,7 +292,7 @@ async function initialisePage(
 
       const module =
         await import(
-          "./sequence.js"
+          "./sequence.js?v=20261026-readiness2"
         );
 
       module.initSequencePage();
