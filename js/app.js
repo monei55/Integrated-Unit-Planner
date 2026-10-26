@@ -292,7 +292,7 @@ async function initialisePage(
 
       const module =
         await import(
-          "./sequence.js?v=20261026-grouped4"
+          "./sequence.js?v=20261026-contentfix5"
         );
 
       module.initSequencePage();
@@ -306,7 +306,7 @@ async function initialisePage(
 
       const module =
         await import(
-          "./daily-review.js?v=20261026-weekly1"
+          "./daily-review.js?v=20261026-contentfix5"
         );
 
       module.initDailyReviewPage();
