@@ -1998,26 +1998,39 @@ function dailyWeekHtml(week) {
 // Build only from lessons in earlier weeks. Week 1 uses prerequisites.
 function conciseWeeklyReview(weekNumber, lessons) {
   if (weekNumber === 1) return bulletText([
-    "Recall familiar places and journeys.",
-    "Name features noticed in familiar photographs.",
-    "Use known words to describe a place.",
+    "Name features of familiar places.",
+    "Describe a familiar place using known vocabulary.",
     "Sequence a familiar experience: first, next, last."
   ]);
-  const recent = reviewLessonFocuses(lessons.filter(l => l.week === weekNumber - 1));
-  const older = reviewLessonFocuses(lessons.filter(l => l.week < weekNumber - 1));
-  const result = [];
-  const add = (prefix, focus) => {
-    if (!focus) return;
-    const trimmed = String(focus).replace(/[.!]+$/, "");
-    const line = `${prefix} ${trimmed}.`;
-    if (!result.some(x => x.toLowerCase() === line.toLowerCase())) result.push(line);
+  const earlier = lessons.filter(lesson => lesson.week < weekNumber);
+  const recent = earlier.filter(lesson => lesson.week === weekNumber - 1);
+  const spaced = earlier.filter(lesson => lesson.week < weekNumber - 1);
+  const extract = list => {
+    const seen = new Set();
+    const result = [];
+    list.forEach(lesson => {
+      const fragments = String(lesson.activity || "").split(/\n|•/).map(s => s.trim()).filter(Boolean);
+      const choices = fragments.length ? fragments : [lesson.purpose || ""];
+      for (const raw of choices) {
+        let value = raw.replace(/^[-•\s]+/, "").replace(/^(introduce|model|practise together|apply independently|review and check):?\s*/i, "").trim();
+        if (!value || value.length > 115 || /achievement standard|learning required|explicitly teach and revisit|student response against the learning focus/i.test(value)) continue;
+        const key = value.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (!seen.has(key)) { seen.add(key); result.push(value.replace(/[.]+$/, "") + "."); }
+        break;
+      }
+    });
+    return result;
   };
-  add("Recall", recent[0]);
-  add("Identify or explain", recent[1] || recent[0]);
-  add("Practise", recent[2] || recent[1] || recent[0]);
-  if (older.length) add("Revisit", older[(weekNumber - 2) % older.length]);
-  add("Apply", recent[3] || older[0] || recent[0]);
-  return bulletText(result.length ? result.slice(0, 5) : ["Retrieve key learning from the previous week."]);
+  const recentPoints = extract(recent);
+  const spacedPoints = extract(spaced);
+  const points = [...recentPoints.slice(0, 3)];
+  if (spacedPoints.length) points.push(spacedPoints[(weekNumber - 2) % spacedPoints.length]);
+  // A final item can be selected from another distinct prior focus.
+  for (const point of [...recentPoints.slice(3), ...spacedPoints]) {
+    if (points.length >= 5) break;
+    if (!points.includes(point)) points.push(point);
+  }
+  return bulletText(points.length ? points : ["Select previously taught knowledge to retrieve this week."]);
 }
 
 function dailyDayHtml(
