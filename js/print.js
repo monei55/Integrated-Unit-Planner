@@ -2,6 +2,8 @@ import {
   unitPlan
 } from "./state.js";
 
+import { getSelectedCurriculumRows } from "./curriculum.js";
+
 
 // ============================================================
 // STEP 9 — REVIEW & PRINT
@@ -2738,6 +2740,12 @@ function getLearningAreas() {
 // ============================================================
 
 function getCurriculumRows() {
+
+  // Step 2 stores selected Achievement Standard codes, not row objects.
+  // Resolve the codes against the same curriculum dataset used in Step 2.
+  const selectedRows = getSelectedCurriculumRows();
+  if (selectedRows.length) return selectedRows;
+
 
   const directCandidates = [
 
