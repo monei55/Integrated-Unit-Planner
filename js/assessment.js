@@ -19,6 +19,7 @@ export function initAssessmentPage() {
   renderAssessmentYearBuilder();
   ensureContextSuggestionControl();
   installAssessmentButtonObserver();
+  installAssessmentActionDelegation();
 
   document
     .getElementById("addEvidenceComponent")
@@ -44,15 +45,9 @@ export function initAssessmentPage() {
     );
 
 
-  document.getElementById("suggestContextAssessment")
-    ?.addEventListener("click", suggestContextAssessment);
+  // Button clicks are delegated below so dynamically inserted controls work.
 
-  document
-    .getElementById("buildDraftAssessment")
-    ?.addEventListener(
-      "click",
-      buildDraftAssessment
-    );
+  // Build button is handled by delegated click listener below.
 
 
   document
@@ -106,10 +101,34 @@ function installAssessmentButtonObserver() {
         !document.getElementById("suggestContextAssessment")) {
       ensureContextSuggestionControl();
       const button = document.getElementById("suggestContextAssessment");
-      if (button) button.addEventListener("click", suggestContextAssessment);
+      // The delegated listener handles this button even after re-rendering.
     }
   });
   observer.observe(root, {childList:true,subtree:true});
+}
+
+// Attach once to a stable ancestor; buttons may be replaced by page rendering.
+let assessmentActionsDelegated = false;
+function installAssessmentActionDelegation() {
+  if (assessmentActionsDelegated) return;
+  const root = document.getElementById("pageContent");
+  if (!root) return;
+  assessmentActionsDelegated = true;
+  root.addEventListener("click", event => {
+    const button = event.target.closest("button");
+    if (!button || !root.contains(button)) return;
+    if (button.id === "suggestContextAssessment") {
+      event.preventDefault();
+      suggestContextAssessment();
+    } else if (button.id === "buildDraftAssessment") {
+      event.preventDefault();
+      try { buildDraftAssessment(); }
+      catch (error) {
+        console.error("Build draft assessment failed:", error);
+        window.alert("The draft could not be built. Open the browser Console for details.");
+      }
+    }
+  });
 }
 
 // ============================================================
@@ -3743,6 +3762,8 @@ function buildDraftAssessment() {
   renderQualityCheck(yearLevel);
   const status = document.getElementById("assessmentGenerationStatus");
   if (status) status.textContent = `Draft assessment built with ${assessment.draftTask.length} mapped question(s). Review the draft below.`;
+  const draft = document.getElementById("draftAssessment");
+  if (draft) { draft.setAttribute("tabindex", "-1"); draft.focus({preventScroll:true}); }
   document.getElementById("draftAssessment")?.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
@@ -3778,24 +3799,28 @@ function suggestContextAssessment() {
       showUsed: false
     };
   }).filter(Boolean);
-  // Seven selected aspects should produce no more than seven suggestions.
-  // Never silently remove teacher-written work. Previously generated
-  // suggestions are recognisable by their provenance marker.
-  const isGenerated = c => String(c.teacherNotes || "").startsWith("AUTO_CONTEXT_SUGGESTION:") ||
-    String(c.teacherNotes || "").startsWith("Draft: teacher to supply the named images/text");
-  const isGeneric = c => /^(demonstrate the selected learning|recognise and select the relevant features|identify the relevant information or relationships|create a response that demonstrates the selected learning|use the selected knowledge)/i.test(String(c.questionText || c.title || "").trim());
-  const replaceable = existing.filter(c => isGenerated(c) || isGeneric(c));
-  const retained = existing.filter(c => !isGenerated(c) && !isGeneric(c));
-  const total = retained.length + suggested.length;
-  if (!window.confirm(`Create ${suggested.length} combined assessment question(s), one per selected Achievement Standard aspect?\n\n${replaceable.length} earlier generated/generic question(s) will be replaced. ${retained.length} teacher-written question(s) will remain.\n\nThe resulting map will have ${total} question(s). You can remove or combine any that overlap. Continue?`)) return;
-  assessment.components = [...retained, ...suggested];
-  // Old draft no longer matches the evidence map. Rebuild explicitly.
+  // Replace the entire previous evidence-map draft on explicit teacher approval.
+  // This is necessary because earlier generated items did not all have provenance markers.
+  // Make the impact clear and do not touch curriculum or other year-level assessments.
+  const count = existing.length;
+  const accepted = window.confirm(
+    `Replace the current ${year} assessment question set?\n\n` +
+    `${count} existing question(s), including the earlier 15 suggestions, will be removed from this year-level assessment.\n` +
+    `${suggested.length} new combined question(s) will be created (one per selected Achievement Standard aspect).\n\n` +
+    `Any teacher-edited questions in this year-level evidence map will also be replaced. ` +
+    `Other year levels and curriculum selections will not be changed.\n\nContinue?`
+  );
+  if (!accepted) return;
+  assessment.components = suggested;
   assessment.draftTask = [];
+  assessment.taskEvidence = "";
   saveAssessment(year, assessment);
+  setValue("assessmentTask", "");
   renderEvidenceMap(year);
   renderDraftAssessment(year);
+  renderQualityCheck(year);
   const status = document.getElementById("assessmentGenerationStatus");
-  if (status) status.textContent = `${suggested.length} combined questions ready. Select Build draft assessment to assemble them.`;
+  if (status) status.textContent = `Replaced ${count} previous questions with ${suggested.length} new questions. Select Build draft assessment to assemble them.`;
   document.getElementById("evidenceMap")?.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
