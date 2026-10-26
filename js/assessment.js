@@ -18,6 +18,7 @@ export function initAssessmentPage() {
 
   renderAssessmentYearBuilder();
   ensureContextSuggestionControl();
+  installAssessmentButtonObserver();
 
   document
     .getElementById("addEvidenceComponent")
@@ -92,6 +93,23 @@ function ensureContextSuggestionControl() {
   `;
   if (map) map.parentNode.insertBefore(wrapper, map);
   else build.parentNode.insertBefore(wrapper, build);
+}
+
+let assessmentObserverInstalled = false;
+function installAssessmentButtonObserver() {
+  if (assessmentObserverInstalled) return;
+  assessmentObserverInstalled = true;
+  const root = document.getElementById("pageContent");
+  if (!root) return;
+  const observer = new MutationObserver(() => {
+    if (document.getElementById("evidenceMap") &&
+        !document.getElementById("suggestContextAssessment")) {
+      ensureContextSuggestionControl();
+      const button = document.getElementById("suggestContextAssessment");
+      if (button) button.addEventListener("click", suggestContextAssessment);
+    }
+  });
+  observer.observe(root, {childList:true,subtree:true});
 }
 
 // ============================================================
@@ -3725,6 +3743,7 @@ function buildDraftAssessment() {
   renderQualityCheck(yearLevel);
   const status = document.getElementById("assessmentGenerationStatus");
   if (status) status.textContent = `Draft assessment built with ${assessment.draftTask.length} mapped question(s). Review the draft below.`;
+  document.getElementById("draftAssessment")?.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
 
@@ -3736,42 +3755,48 @@ function buildDraftAssessment() {
 // Teacher-controlled draft generation. Never silently overwrite approved work.
 function suggestContextAssessment() {
   const year = unitPlan.assessments.activeYear;
-  if (!year) return;
+  if (!year) return window.alert("Select an assessment year level first.");
   const rows = rowsForAssessmentYear(year);
   if (!rows.length) return window.alert("Select Achievement Standard aspects first.");
   const assessment = getAssessment(year);
   const context = assessmentContextProfile();
-  const suggestions = rows.flatMap(row => contextualAssessmentQuestions(row, context));
   const existing = assessment.components || [];
-  // Legacy automatically generated placeholders may be replaced, but teacher
-  // authored questions are always retained. Ask before removing any item.
-  const generic = component => {
-    const q = String(component.questionText || component.title || "").trim();
-    return /^(demonstrate the selected learning|recognise and select the relevant features|identify the relevant information or relationships|create a response that demonstrates the selected learning|use the selected knowledge)/i.test(q);
-  };
-  const placeholders = existing.filter(generic);
-  if (existing.length && !window.confirm(
-    `Generate ${suggestions.length} context-specific questions?\n\n${placeholders.length} generic placeholder(s) can be replaced; ${existing.length - placeholders.length} existing question(s) will be retained.\n\nOK = proceed. Cancel = make no changes.`
-  )) return;
-  const additions = suggestions.map(item => ({
-    id: crypto.randomUUID(), title: item.title,
-    selectedStandardCodes: [item.code],
-    cognitiveDemands: item.verbs,
-    evidenceFormat: item.format, questionText: item.question,
-    integrationConnections: [], teacherNotes: item.note,
-    generatedSuggestion: true, showUsed: false
-  }));
-  const retained = existing.filter(component => !generic(component));
-  const existingKeys = new Set(retained.filter(component => component.generatedSuggestion)
-    .map(component => `${component.selectedStandardCodes?.[0]}|${component.title}`));
-  const fresh = additions.filter(component => !existingKeys.has(`${component.selectedStandardCodes?.[0]}|${component.title}`));
-  assessment.components = [...retained, ...fresh];
+  // One assessment opportunity per selected aspect, with combined prompts
+  // where a single response can demonstrate several requirements.
+  const suggested = rows.map(row => {
+    const options = contextualAssessmentQuestions(row, context);
+    if (!options.length) return null;
+    const question = options.map(o => o.question.trim()).filter(Boolean).join(" ");
+    return {
+      id: crypto.randomUUID(), title: options[0].title,
+      selectedStandardCodes: [row.code],
+      cognitiveDemands: [...new Set(options.flatMap(o => o.verbs))],
+      evidenceFormat: options.map(o => o.format).filter(Boolean).join("; "),
+      questionText: question,
+      integrationConnections: [],
+      teacherNotes: "AUTO_CONTEXT_SUGGESTION: Review the question and evidence before approval.",
+      showUsed: false
+    };
+  }).filter(Boolean);
+  // Seven selected aspects should produce no more than seven suggestions.
+  // Never silently remove teacher-written work. Previously generated
+  // suggestions are recognisable by their provenance marker.
+  const isGenerated = c => String(c.teacherNotes || "").startsWith("AUTO_CONTEXT_SUGGESTION:") ||
+    String(c.teacherNotes || "").startsWith("Draft: teacher to supply the named images/text");
+  const isGeneric = c => /^(demonstrate the selected learning|recognise and select the relevant features|identify the relevant information or relationships|create a response that demonstrates the selected learning|use the selected knowledge)/i.test(String(c.questionText || c.title || "").trim());
+  const replaceable = existing.filter(c => isGenerated(c) || isGeneric(c));
+  const retained = existing.filter(c => !isGenerated(c) && !isGeneric(c));
+  const total = retained.length + suggested.length;
+  if (!window.confirm(`Create ${suggested.length} combined assessment question(s), one per selected Achievement Standard aspect?\n\n${replaceable.length} earlier generated/generic question(s) will be replaced. ${retained.length} teacher-written question(s) will remain.\n\nThe resulting map will have ${total} question(s). You can remove or combine any that overlap. Continue?`)) return;
+  assessment.components = [...retained, ...suggested];
+  // Old draft no longer matches the evidence map. Rebuild explicitly.
+  assessment.draftTask = [];
   saveAssessment(year, assessment);
   renderEvidenceMap(year);
-  buildDraftAssessment();
+  renderDraftAssessment(year);
   const status = document.getElementById("assessmentGenerationStatus");
-  if (status) status.textContent = `${fresh.length} suggested questions added; ${placeholders.length} generic placeholders replaced. Review each question and its evidence links.`;
-  window.alert(`${fresh.length} editable assessment questions added. ${placeholders.length} generic placeholders replaced. Existing teacher-written questions and marking-guide edits were preserved.`);
+  if (status) status.textContent = `${suggested.length} combined questions ready. Select Build draft assessment to assemble them.`;
+  document.getElementById("evidenceMap")?.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
 function assessmentContextProfile() {
