@@ -288,18 +288,18 @@ async function initialisePage(
     }
 
 
-    case "sequence": {
+case "sequence": {
 
-      const module =
-        await import(
-          "./sequence.js?v=20261026-readiness2"
-        );
+  const module =
+    await import(
+      "./sequence.js?v=20261026-concise1"
+    );
 
-      module.initSequencePage();
+  module.initSequencePage();
 
-      break;
+  break;
 
-    }
+}
 
 
     case "daily-review": {
