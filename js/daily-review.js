@@ -218,7 +218,7 @@ function buildDailyReviewBank() {
 
   const existingWeeks = unitPlan.daily?.weeklyPlan || [];
   const replaceGenerated = !existingWeeks.length || window.confirm(
-    "Refresh the weekly Daily Review suggestions? This will replace existing Monday–Friday text. Teacher notes and year-level prompts will be retained. Choose Cancel to keep your current reviews."
+    "Refresh the concise weekly review summaries? Existing weekly summaries will be replaced. Previous daily entries and teacher notes will remain saved. Choose Cancel to keep current summaries."
   );
   if (replaceGenerated) {
     buildWeeklyDailyReviewPlan(lessonSequence, curriculumRows, true);
@@ -1124,11 +1124,14 @@ function buildDailyReviewWeek(weekNumber, lessonSequence, curriculumRows, previo
     id: previous?.id || crypto.randomUUID(),
     week: weekNumber,
     ...Object.fromEntries(days.map(day => [day,
-      refresh ? generated[day] : (previous?.[day] ?? generated[day])
+      previous?.[day] ?? generated[day]
     ])),
     yearSpecific: previous?.yearSpecific || buildYearSpecificReviewItems(
       weekNumber, earlier, curriculumRows
     ),
+    weeklySummary: refresh || previous?.weeklySummary == null
+      ? conciseWeeklyReview(weekNumber, lessonSequence)
+      : previous.weeklySummary,
     teacherNote: previous?.teacherNote || ""
   };
 }
@@ -1958,108 +1961,64 @@ function renderWeeklyDailyReview() {
 // WEEK HTML
 // ============================================================
 
-function dailyWeekHtml(
-  week
-) {
-
+// One concise editable weekly overview; legacy daily entries remain saved.
+function dailyWeekHtml(week) {
+  const lessons = getLessonSequence();
+  const suggested = conciseWeeklyReview(week.week, lessons);
+  const value = week.weeklySummary ?? suggested;
   return `
-    <section
-      class="daily-week-card"
-      data-daily-week="${escapeAttribute(
-        week.id
-      )}"
-    >
-
+    <section class="daily-week-card" data-daily-week="${escapeAttribute(week.id)}">
       <div class="daily-week-head">
-
-        <div>
-
-          <span class="daily-week-number">
-            ${escapeHtml(
-              week.week
-            )}
-          </span>
-
-          <div>
-
-            <strong>
-              Week ${escapeHtml(
-                week.week
-              )} Daily Review
-            </strong>
-
-            <p>
-              5 minutes • retrieve → recognise →
-              apply → correct / explain
-            </p>
-
-          </div>
-
+        <div><strong>Week ${escapeHtml(week.week)} Daily Review</strong>
+          <p>5 minutes daily • rotate these previously taught focuses</p>
         </div>
-
       </div>
-
-
-      <div class="daily-days-grid">
-
-        ${dailyDayHtml(
-          "Monday",
-          "monday",
-          week.monday
-        )}
-
-        ${dailyDayHtml(
-          "Tuesday",
-          "tuesday",
-          week.tuesday
-        )}
-
-        ${dailyDayHtml(
-          "Wednesday",
-          "wednesday",
-          week.wednesday
-        )}
-
-        ${dailyDayHtml(
-          "Thursday",
-          "thursday",
-          week.thursday
-        )}
-
-        ${dailyDayHtml(
-          "Friday",
-          "friday",
-          week.friday
-        )}
-
-      </div>
-
-
-      ${yearSpecificHtml(
-        week.yearSpecific
-      )}
-
-
-      <label class="daily-teacher-note">
-
-        Teacher note / misconceptions noticed
-
-        <textarea
-          class="daily-week-note"
-          rows="2"
-          placeholder="Record errors, concepts to revisit, or changes for next week's review..."
-        >${escapeHtml(
-          week.teacherNote ||
-          ""
-        )}</textarea>
-
+      <label class="daily-day-card">
+        <strong>Weekly review focuses</strong>
+        <textarea data-daily-field="weeklySummary" rows="5"
+          style="width:100%;min-height:120px;resize:vertical">${escapeHtml(value)}</textarea>
       </label>
-
-    </section>
-  `;
-
+      <details style="margin-top:8px">
+        <summary>Previous daily entries (preserved)</summary>
+        <div class="daily-days-grid">
+          ${dailyDayHtml("Monday", "monday", week.monday)}
+          ${dailyDayHtml("Tuesday", "tuesday", week.tuesday)}
+          ${dailyDayHtml("Wednesday", "wednesday", week.wednesday)}
+          ${dailyDayHtml("Thursday", "thursday", week.thursday)}
+          ${dailyDayHtml("Friday", "friday", week.friday)}
+        </div>
+        ${yearSpecificHtml(week.yearSpecific)}
+      </details>
+      <label class="daily-teacher-note">Teacher note / misconceptions noticed
+        <textarea class="daily-week-note" rows="2" placeholder="What needs revisiting?">${escapeHtml(week.teacherNote || "")}</textarea>
+      </label>
+    </section>`;
 }
 
+// Build only from lessons in earlier weeks. Week 1 uses prerequisites.
+function conciseWeeklyReview(weekNumber, lessons) {
+  if (weekNumber === 1) return bulletText([
+    "Recall familiar places and journeys.",
+    "Name features noticed in familiar photographs.",
+    "Use known words to describe a place.",
+    "Sequence a familiar experience: first, next, last."
+  ]);
+  const recent = reviewLessonFocuses(lessons.filter(l => l.week === weekNumber - 1));
+  const older = reviewLessonFocuses(lessons.filter(l => l.week < weekNumber - 1));
+  const result = [];
+  const add = (prefix, focus) => {
+    if (!focus) return;
+    const trimmed = String(focus).replace(/[.!]+$/, "");
+    const line = `${prefix} ${trimmed}.`;
+    if (!result.some(x => x.toLowerCase() === line.toLowerCase())) result.push(line);
+  };
+  add("Recall", recent[0]);
+  add("Identify or explain", recent[1] || recent[0]);
+  add("Practise", recent[2] || recent[1] || recent[0]);
+  if (older.length) add("Revisit", older[(weekNumber - 2) % older.length]);
+  add("Apply", recent[3] || older[0] || recent[0]);
+  return bulletText(result.length ? result.slice(0, 5) : ["Retrieve key learning from the previous week."]);
+}
 
 function dailyDayHtml(
   heading,
