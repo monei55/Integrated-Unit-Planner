@@ -2740,77 +2740,48 @@ function getLearningAreas() {
 // ============================================================
 
 function getCurriculumRows() {
+  // Step 2 persists codes. Resolve them directly from the live curriculum
+  // dataset, avoiding stale module-level snapshots and legacy row formats.
+  const codes = Array.isArray(unitPlan.curriculum?.selectedStandards)
+    ? unitPlan.curriculum.selectedStandards
+    : [];
+  const selectedCodes = new Set(codes.map(String));
+  const dataset = Array.isArray(window.CURRICULUM_DATA)
+    ? window.CURRICULUM_DATA
+    : [];
 
-  // Step 2 stores selected Achievement Standard codes, not row objects.
-  // Resolve the codes against the same curriculum dataset used in Step 2.
-  const selectedRows = getSelectedCurriculumRows();
-  if (selectedRows.length) return selectedRows;
+  if (selectedCodes.size) {
+    const rows = dataset.filter(row =>
+      row && row.type === "achievement_standard" &&
+      selectedCodes.has(String(row.code))
+    );
+    if (rows.length) return rows;
 
-
-  const directCandidates = [
-
-    unitPlan.curriculum
-      ?.selectedRows,
-
-    unitPlan.curriculum
-      ?.rows,
-
-    unitPlan.curriculum
-      ?.selected,
-
-    unitPlan.selectedCurriculumRows,
-
-    unitPlan.curriculumRows
-
-  ];
-
-
-  for (
-    const candidate of
-    directCandidates
-  ) {
-
-    if (
-      Array.isArray(
-        candidate
-      ) &&
-      candidate.length
-    ) {
-
-      return candidate;
-
-    }
-
+    // This can happen if the curriculum dataset has not loaded, or the
+    // saved codes belong to a different dataset version. Do not mistake
+    // unrelated curriculum rows for the teacher's selected standards.
+    console.warn("Review & Print: selected Achievement Standard codes could not be resolved", {
+      selectedCount: selectedCodes.size,
+      datasetCount: dataset.length
+    });
+    return [];
   }
 
-
-  const found = [];
-
-
-  findCurriculumLikeRows(
-    unitPlan.curriculum,
-    found
-  );
-
-
-  return deduplicateObjects(
-    found,
-    (row) =>
-      [
-        row.subject ||
-        "",
-        row.grade ||
-        row.yearLevel ||
-        "",
-        row.code ||
-        "",
-        row.text ||
-        row.statement ||
-        ""
-      ]
-        .join("|")
-  );
-
+  // Compatibility with older saved units that stored full row objects.
+  const directCandidates = [
+    unitPlan.curriculum?.selectedRows,
+    unitPlan.curriculum?.rows,
+    unitPlan.curriculum?.selected,
+    unitPlan.selectedCurriculumRows,
+    unitPlan.curriculumRows
+  ];
+  for (const candidate of directCandidates) {
+    if (Array.isArray(candidate) && candidate.length &&
+        candidate.some(row => row && typeof row === "object" && (row.text || row.statement))) {
+      return candidate.filter(row => row && typeof row === "object" && (row.text || row.statement));
+    }
+  }
+  return [];
 }
 
 
