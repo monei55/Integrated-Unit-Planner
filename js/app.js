@@ -346,7 +346,7 @@ async function initialisePage(
 
 
 case "review-print": {
-  const module = await import("./print.js?v=20261026-weekly2");
+  const module = await import("./print.js?v=20261026-weekly3");
 
   module.initPrintPage();
 
