@@ -1055,267 +1055,59 @@ function renderSavedReadiness() {
 // ============================================================
 
 function buildTeachingPriorities() {
-
-  const rows =
-    getSelectedCurriculumRows();
-
-
-  const container =
-    document.getElementById(
-      "teachingPriorities"
-    );
-
-
-  if (
-    !rows.length
-  ) {
-
-    if (
-      container
-    ) {
-
-      container.innerHTML = `
-
-        <div class="empty">
-
-          Select Achievement Standard aspects
-          in Step 2 before generating teaching
-          priorities.
-
-        </div>
-
-      `;
-
-    }
-
+  const rows = getSelectedCurriculumRows();
+  const container = document.getElementById("teachingPriorities");
+  if (!rows.length) {
+    if (container) container.innerHTML = '<div class="empty">Select Achievement Standard aspects in Step 2 first.</div>';
     return;
-
   }
-
-
-  const priorities = [];
-
-
-  Object.entries(
-    rowsGroupedBySubject(
-      rows
-    )
-  )
-    .forEach(
-      ([subject, subjectRows]) => {
-
-        const text =
-          combinedRowText(
-            subjectRows
-          );
-
-
-        const verbs =
-          unique(
-            subjectRows.flatMap(
-              (row) =>
-                findCognitiveVerbs(
-                  row.text
-                )
-            )
-          );
-
-
-        const explicitFocus = [];
-
-
-        if (
-          /vocab|terminolog|language feature|technical|topic-specific/
-            .test(
-              text
-            )
-        ) {
-
-          explicitFocus.push(
-            "subject-specific and academic vocabulary"
-          );
-
-        }
-
-
-        if (
-          /source|text|information|data|evidence|graph|table|map|image/
-            .test(
-              text
-            )
-        ) {
-
-          explicitFocus.push(
-            "the background knowledge needed to understand the texts, sources, information or data used in the unit"
-          );
-
-        }
-
-
-        explicitFocus.push(
-          "the essential content knowledge and concepts identified in the selected Achievement Standard aspects"
-        );
-
-
-        priorities.push(
-          makePriority(
-            "Explicit teaching",
-            subject,
-            `Teach ${joinNaturalList(
-              unique(
-                explicitFocus
-              )
-            )}.`,
-            "Students need secure knowledge and vocabulary before they can successfully engage with higher-order thinking or assessment.",
-            "Curriculum"
-          )
-        );
-
-
-        const modelled =
-          buildSubjectPriorityActions(
-            verbs
-          );
-
-
-        if (
-          modelled.length
-        ) {
-
-          priorities.push(
-            makePriority(
-              "Modelled instruction",
-              subject,
-              `Model how to ${joinNaturalList(
-                modelled
-              )}.`,
-              `These processes are embedded in the selected ${subject} Achievement Standard aspects and should be made visible before students are expected to perform them independently.`,
-              "Cognitive demand"
-            )
-          );
-
-        }
-
-
-        const guided =
-          buildAssessmentPracticeActions(
-            verbs
-          );
-
-
-        if (
-          guided.length
-        ) {
-
-          priorities.push(
-            makePriority(
-              "Guided practice",
-              subject,
-              `Provide scaffolded practice in ${joinNaturalList(
-                guided
-              )}.`,
-              "Students need supported opportunities to rehearse the required thinking and processes, receive feedback and refine their responses.",
-              "Curriculum + assessment"
-            )
-          );
-
-        }
-
-      }
-    );
-
-
-  const assessmentComponents =
-    getAssessmentComponentsAcrossYears();
-
-
-  const formats =
-    unique(
-      assessmentComponents
-        .map(
-          (component) =>
-            component.evidenceFormat
-        )
-        .filter(
-          (format) =>
-            format &&
-            format !== "__own"
-        )
-    );
-
-
-  if (
-    formats.length
-  ) {
-
-    priorities.push(
-      makePriority(
-        "Guided practice",
-        "Assessment preparation",
-        `Give students prior practice using the response formats they will encounter in the assessment, including ${joinNaturalList(
-          formats
-        )}.`,
-        "The assessment should measure the intended curriculum learning rather than a student's first attempt at an unfamiliar response format.",
-        "Assessment evidence map"
-      )
-    );
-
-  }
-
-
-  const independentActions =
-    buildAssessmentPracticeActions(
-      unique(
-        assessmentComponents
-          .flatMap(
-            (component) =>
-              component.verbs ||
-              []
-          )
-      )
-    );
-
-
-  if (
-    independentActions.length
-  ) {
-
-    priorities.push(
-      makePriority(
-        "Independent application",
-        "Assessment preparation",
-        `Provide an independent practice opportunity where students apply ${joinNaturalList(
-          independentActions
-        )} before summative assessment.`,
-        "Independent practice helps confirm that students can transfer the learning without teacher prompting or excessive scaffolding.",
-        "Assessment readiness"
-      )
-    );
-
-  }
-
-
-  const existing =
-    Array.isArray(
-      unitPlan.sequence
-        ?.teachingPriorities
-    )
-      ? unitPlan.sequence
-          .teachingPriorities
-      : [];
-
-
-  updateUnitPlan(
-    "sequence.teachingPriorities",
-    mergePriorities(
-      priorities,
-      existing
-    )
-  );
-
-
+  const previous = Array.isArray(unitPlan.sequence?.teachingPriorities)
+    ? unitPlan.sequence.teachingPriorities : [];
+  if (previous.length && !window.confirm("Replace suggested teaching priorities? Existing teacher notes and checkmarks will be retained where priorities match.")) return;
+  const generated = [];
+  Object.entries(rowsGroupedBySubject(rows)).forEach(([subject, subjectRows]) => {
+    const statements = conciseTeachingTargets(subjectRows).slice(0, 5);
+    statements.forEach((focus, index) => {
+      generated.push(makePriority("Explicit teaching", subject, "• " + focus,
+        "Linked to selected curriculum and assessment demands.", "Curriculum + assessment"));
+    });
+  });
+  const existingBySubject = new Map();
+  previous.forEach(item => {
+    const key = String(item.subject || "");
+    if (!existingBySubject.has(key)) existingBySubject.set(key, []);
+    existingBySubject.get(key).push(item);
+  });
+  const result = generated.map((item, index) => {
+    const sameSubject = generated.slice(0, index).filter(p => p.subject === item.subject).length;
+    const old = existingBySubject.get(item.subject)?.[sameSubject];
+    return old ? {...item, id: old.id || item.id,
+      teacherNote: old.teacherNote || "", completed: Boolean(old.completed)} : item;
+  });
+  updateUnitPlan("sequence.teachingPriorities", result);
   renderSavedTeachingPriorities();
+}
 
+function conciseTeachingTargets(rows) {
+  const targets = [];
+  const combined = rows.map(r => String(r.text || "").toLowerCase()).join(" ");
+  const add = (pattern, label) => { if (pattern.test(combined)) targets.push(label); };
+  add(/phonic|spelling|decod|morphem/, "Model decoding, spelling and word-building using unit vocabulary.");
+  add(/vocab|language|terminolog/, "Explicitly teach and revisit key vocabulary in context.");
+  add(/read|view|comprehen|text|source/, "Read or view sources; model locating and discussing evidence.");
+  add(/natural|managed|constructed|feature|place/, "Identify and classify features of places using photographs and maps.");
+  add(/question|collect|sort|record|data|observ/, "Model questioning, observing, sorting and recording information.");
+  add(/conclusion|propos|care for/, "Draw conclusions from observations and propose practical actions.");
+  add(/sequence|recount|narrativ|past|event/, "Sequence key events and model an oral or written recount.");
+  add(/create|write|present|communicat|share/, "Model, jointly construct and independently create the required response.");
+  add(/explain|compare|describ|identify/, "Model the required descriptions and explanations with worked examples.");
+  if (!targets.length) {
+    rows.slice(0, 3).forEach(row => {
+      const verbs = findCognitiveVerbs(row.text || "");
+      targets.push("Model and practise how to " + (verbs[0] || "demonstrate") + " the selected learning.");
+    });
+  }
+  return unique(targets);
 }
 
 
@@ -1625,7 +1417,7 @@ function teachingPriorityHtml(
         )}</textarea>
 
 
-        <div class="priority-reason">
+        <div class="priority-reason" style="display:none">
 
           <strong>
             Why this matters:
@@ -2714,7 +2506,7 @@ function lessonCardHtml(
       <div class="lesson-head">
 
         <strong>
-          Learning experience
+          Lesson
           ${index + 1}
         </strong>
 
@@ -3578,10 +3370,7 @@ function suggestWeeklySequence() {
       </strong>
 
       <p>
-        The planner has distributed selected
-        Achievement Standard demands across the
-        weekly learning experiences rather than
-        repeating one subject-level suggestion.
+        Each allocated lesson now has one concise teaching focus. Existing teacher entries are preserved.
       </p>
 
       <p>
@@ -3601,138 +3390,39 @@ function suggestWeeklySequence() {
 }
 
 
-function suggestLessonContent(
-  lesson,
-  weekPhase,
-  phasePriorities,
-  subjectRows,
-  lessonIndex = 0,
-  subjectLessonCount = 1,
-  weekNumber = 1,
-  totalWeeks = 10
-) {
-
-  const subject =
-    lesson.subject ||
-    "Integrated";
-
-
-  const rows =
-    subjectRows[
-      subject
-    ] ||
-    [];
-
-
-  const subjectPriority =
-
-    phasePriorities.find(
-      (item) =>
-        item.subject ===
-        subject
-    ) ||
-
-    phasePriorities.find(
-      (item) =>
-        item.subject &&
-        subject.includes(
-          item.subject
-        )
-    );
-
-
-  const curriculumSuggestion =
-    buildCurriculumLessonSuggestion(
-      subject,
-      rows,
-      lessonIndex,
-      subjectLessonCount,
-      weekPhase,
-      weekNumber,
-      totalWeeks
-    );
-
-
-  return {
-
-    ...lesson,
-
-
-    // --------------------------------------------------------
-    // REGENERATE THE TEACHING PHASE
-    // --------------------------------------------------------
-
-    phase:
-      curriculumSuggestion.phase ||
-      weekPhase ||
-      lesson.phase ||
-      "",
-
-
-    // --------------------------------------------------------
-    // REGENERATE THE LEARNING PURPOSE
-    // --------------------------------------------------------
-
-    purpose:
-      conciseLearningFocus(curriculumSuggestion.purpose, weekNumber, totalWeeks) ||
-      subjectPriority?.focus ||
-      defaultLessonPurpose(
-        subject,
-        rows,
-        weekPhase
-      ) ||
-      lesson.purpose ||
-      "",
-
-
-    // --------------------------------------------------------
-    // REGENERATE THE LEARNING EXPERIENCE
-    // --------------------------------------------------------
-
-    activity:
-      progressiveLearningPoints(curriculumSuggestion.purpose, curriculumSuggestion.phase || weekPhase, weekNumber, totalWeeks) ||
-      suggestedLearningExperience(
-        curriculumSuggestion.phase ||
-        weekPhase,
-        subject
-      ) ||
-      lesson.activity ||
-      "",
-
-
-    // --------------------------------------------------------
-    // REGENERATE FORMATIVE EVIDENCE
-    // --------------------------------------------------------
-
-    evidence:
-      conciseEvidencePoint(curriculumSuggestion.evidence) ||
-      suggestedLessonEvidence(
-        curriculumSuggestion.phase ||
-        weekPhase
-      ) ||
-      lesson.evidence ||
-      "",
-
-
-    // --------------------------------------------------------
-    // REGENERATE THE INTEGRATION CONNECTION
-    // --------------------------------------------------------
-
-    integration:
-      conciseIntegrationPoint(curriculumSuggestion.integration || suggestedIntegrationConnection(subject, subjectRows)) ||
-      suggestedIntegrationConnection(
-        subject,
-        subjectRows
-      ) ||
-      lesson.integration ||
-      ""
-
+function suggestLessonContent(lesson, weekPhase, phasePriorities, subjectRows,
+  lessonIndex = 0, subjectLessonCount = 1, weekNumber = 1, totalWeeks = 10) {
+  const subject = lesson.subject || "Integrated";
+  const rows = subjectRows[subject] || [];
+  const targets = conciseTeachingTargets(rows);
+  const stage = ["Introduce", "Model", "Practise together", "Apply", "Review and check"];
+  const position = subjectLessonCount > 1
+    ? Math.min(4, Math.floor(lessonIndex * 5 / subjectLessonCount))
+    : Math.min(4, Math.floor((weekNumber - 1) * 5 / Math.max(1, totalWeeks)));
+  const targetIndex = rows.length
+    ? Math.min(targets.length - 1, Math.floor(((weekNumber - 1) * subjectLessonCount + lessonIndex) / Math.max(1, totalWeeks * subjectLessonCount) * targets.length))
+    : 0;
+  const target = targets[targetIndex] || "Teach and practise the selected assessment skill.";
+  const clean = target.replace(/[.]$/, "");
+  const action = [
+    `Introduce ${clean.charAt(0).toLowerCase() + clean.slice(1)}.`,
+    `Model ${clean.charAt(0).toLowerCase() + clean.slice(1)}.`,
+    `Practise together: ${clean.charAt(0).toLowerCase() + clean.slice(1)}.`,
+    `Apply independently: ${clean.charAt(0).toLowerCase() + clean.slice(1)}.`,
+    `Review and check: ${clean.charAt(0).toLowerCase() + clean.slice(1)}.`
+  ][position];
+  const phase = ["Explicit teaching", "Modelled instruction", "Guided practice", "Independent application", "Review / consolidation"][position];
+  // Keep teacher-written content; fill only empty fields. One bullet per allocated lesson.
+  return {...lesson,
+    phase: lesson.phase || phase,
+    purpose: lesson.purpose || clean + ".",
+    activity: lesson.activity || "• " + action,
+    evidence: lesson.evidence || "• Check student response against the learning focus.",
+    integration: lesson.integration || ""
   };
-
 }
 
 
-// Concise, editable suggestions. No invented topic-specific content is added.
 function conciseLearningFocus(value) {
   return String(value || "")
     .replace(/^[^:]{1,45}:\s*explicitly teach and practise the learning required by this Achievement Standard aspect\s*[—–-]\s*/i, "")
