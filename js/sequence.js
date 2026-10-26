@@ -925,597 +925,130 @@ function buildAssessmentPracticeActions(
 // ASSESSMENT READINESS
 // ============================================================
 
-function buildAssessmentReadiness() {
+// One readiness checklist per selected year level. Individual assessment
+// components remain in Step 4 and are not changed by this summary.
+const READINESS_CRITERIA = [
+  ["knowledge", "The background knowledge and content needed across the assessment have been explicitly taught."],
+  ["vocabulary", "Essential vocabulary and task language have been explicitly taught and revisited."],
+  ["modelling", "The assessed skills and cognitive demands have been explicitly modelled."],
+  ["guided", "Students have completed guided practice with feedback across the assessed skills."],
+  ["format", "Students have practised the required response formats before summative assessment."],
+  ["independent", "Students have independently applied the assessed knowledge and skills before summative assessment."],
+  ["adjustments", "Required adjustments support access without providing the knowledge or thinking being assessed."]
+];
 
+function readinessComponentsForYear(yearLevel) {
+  const assessment = getAssessment(yearLevel);
+  return (assessment?.components || []).filter(
+    component => component?.selectedStandardCodes?.length
+  );
+}
+
+function readinessCriteriaForYear(yearLevel) {
+  const components = readinessComponentsForYear(yearLevel);
+  const rows = selectedRowsForYear(yearLevel);
+  const selectedCodes = new Set(
+    components.flatMap(component => component.selectedStandardCodes || [])
+  );
+  const matchedRows = rows.filter(row => selectedCodes.has(row.code));
+  const verbs = unique(matchedRows.flatMap(row => findCognitiveVerbs(row.text || "")));
+  const formats = unique(components.map(component => component.evidenceFormat)
+    .filter(format => format && format !== "__own"));
+  const subjects = unique(matchedRows.map(row => row.subject).filter(Boolean));
+  return {components, verbs, formats, subjects};
+}
+
+function buildAssessmentReadiness() {
+  const existing = unitPlan.sequence?.readinessChecks || {};
   const readiness = {};
 
+  getUnitYears().forEach(yearLevel => {
+    const info = readinessCriteriaForYear(yearLevel);
+    if (!info.components.length) return;
 
-  getUnitYears()
-    .forEach(
-      (yearLevel) => {
+    // Preserve already-saved year-level decisions. Old per-question decisions
+    // cannot safely be treated as whole-year approval, so start unchecked.
+    const previous = existing[yearLevel];
+    const saved = !Array.isArray(previous) && previous?.scope === "year"
+      ? previous : null;
+    readiness[yearLevel] = {
+      scope: "year",
+      componentIds: info.components.map(component => component.id),
+      checks: READINESS_CRITERIA.map(([id, label]) => ({
+        id,
+        label,
+        checked: Boolean(saved?.checks?.find(check => check.id === id)?.checked)
+      }))
+    };
+  });
 
-        const assessment =
-          getAssessment(
-            yearLevel
-          );
-
-
-        if (
-          !assessment?.components
-            ?.length
-        ) {
-
-          return;
-
-        }
-
-
-        const rows =
-          selectedRowsForYear(
-            yearLevel
-          );
-
-
-        const components =
-          assessment.components
-            .filter(
-              (component) =>
-                component
-                  .selectedStandardCodes
-                  ?.length
-            );
-
-
-        if (
-          !components.length
-        ) {
-
-          return;
-
-        }
-
-
-        readiness[
-          yearLevel
-        ] =
-          components.map(
-            (component, index) => {
-
-              const componentRows =
-                rows.filter(
-                  (row) =>
-                    component
-                      .selectedStandardCodes
-                      .includes(
-                        row.code
-                      )
-                );
-
-
-              const verbs =
-                unique(
-                  componentRows.flatMap(
-                    (row) =>
-                      findCognitiveVerbs(
-                        row.text
-                      )
-                  )
-                );
-
-
-              const existing =
-                unitPlan.sequence
-                  ?.readinessChecks
-                  ?.[yearLevel]
-                  ?.find(
-                    (item) =>
-                      item.componentId ===
-                      component.id
-                  );
-
-
-              return {
-
-                componentId:
-                  component.id,
-
-                number:
-                  index + 1,
-
-                question:
-                  component.questionText ||
-                  `Assessment component ${index + 1}`,
-
-                evidenceFormat:
-                  component.evidenceFormat ||
-                  "",
-
-                verbs,
-
-                subjects:
-                  unique(
-                    componentRows.map(
-                      (row) =>
-                        row.subject
-                    )
-                  ),
-
-                checks:
-                  existing?.checks ||
-                  buildReadinessItems(
-                    componentRows,
-                    verbs,
-                    component.evidenceFormat
-                  )
-
-              };
-
-            }
-          );
-
-      }
-    );
-
-
-  updateUnitPlan(
-    "sequence.readinessChecks",
-    readiness
-  );
-
-
+  updateUnitPlan("sequence.readinessChecks", readiness);
   renderSavedReadiness();
-
 }
-
-
-function buildReadinessItems(
-  rows,
-  verbs,
-  evidenceFormat
-) {
-
-  const items = [
-
-    readinessItem(
-      "Required background knowledge and content have been explicitly taught."
-    )
-
-  ];
-
-
-  items.push(
-    readinessItem(
-      rows.some(
-        (row) =>
-          /vocab|terminolog|language|technical|topic-specific/i
-            .test(
-              row.text ||
-              ""
-            )
-      )
-        ? "Relevant Tier 2, Tier 3 and subject-specific vocabulary has been introduced and revisited."
-        : "Vocabulary students need to understand the task and content has been explicitly taught."
-    )
-  );
-
-
-  if (
-    verbs.length
-  ) {
-
-    items.push(
-      readinessItem(
-        `The cognitive demand has been explicitly modelled: ${joinNaturalList(
-          verbs.map(
-            (verb) =>
-              verb.toUpperCase()
-          )
-        )}.`
-      )
-    );
-
-
-    items.push(
-      readinessItem(
-        `Students have completed guided practice in ${joinNaturalList(
-          buildAssessmentPracticeActions(
-            verbs
-          )
-        )}.`
-      )
-    );
-
-  }
-
-
-  if (
-    evidenceFormat &&
-    evidenceFormat !== "__own"
-  ) {
-
-    items.push(
-      readinessItem(
-        `Students have practised the assessment response format before summative use: ${evidenceFormat}.`
-      )
-    );
-
-  }
-
-
-  items.push(
-    readinessItem(
-      "Students have had an independent practice opportunity before completing this component for summative evidence."
-    )
-  );
-
-
-  items.push(
-    readinessItem(
-      "Any required scaffolds or adjustments support access without supplying the assessed knowledge or thinking."
-    )
-  );
-
-
-  return items;
-
-}
-
-
-function readinessItem(
-  label
-) {
-
-  return {
-
-    id:
-      crypto.randomUUID(),
-
-    label,
-
-    checked:
-      false
-
-  };
-
-}
-
 
 function renderSavedReadiness() {
+  const container = document.getElementById("assessmentReadiness");
+  if (!container) return;
+  const saved = unitPlan.sequence?.readinessChecks || {};
+  const years = getUnitYears().filter(year => readinessComponentsForYear(year).length);
 
-  const container =
-    document.getElementById(
-      "assessmentReadiness"
-    );
-
-
-  if (
-    !container
-  ) {
-
+  if (!years.length) {
+    container.innerHTML = '<div class="empty">Build the year-level assessment in Step 4, then select <strong>Build readiness check</strong>.</div>';
     return;
-
   }
 
-
-  const readiness =
-    unitPlan.sequence
-      ?.readinessChecks ||
-    {};
-
-
-  const years =
-    Object.keys(
-      readiness
-    )
-      .filter(
-        (year) =>
-          readiness[
-            year
-          ]
-            ?.length
-      );
-
-
-  if (
-    !years.length
-  ) {
-
-    container.innerHTML = `
-
-      <div class="empty">
-
-        Build the year-level assessment
-        in Step 4, then use
-
-        <strong>
-          Build readiness check
-        </strong>.
-
-      </div>
-
-    `;
-
-    return;
-
-  }
-
-
-  container.innerHTML =
-    years
-      .map(
-        (yearLevel) => `
-
-          <section class="readiness-year">
-
-            <div class="readiness-year-head">
-
-              <h4>
-                ${escapeHtml(
-                  yearLevel
-                )}
-              </h4>
-
-              <span>
-
-                ${readiness[
-                  yearLevel
-                ].length}
-
-                assessment component${
-                  readiness[
-                    yearLevel
-                  ].length === 1
-                    ? ""
-                    : "s"
-                }
-
-              </span>
-
-            </div>
-
-
-            <div class="assessment-readiness">
-
-              ${
-                readiness[
-                  yearLevel
-                ]
-                  .map(
-                    (component) =>
-                      readinessCardHtml(
-                        yearLevel,
-                        component
-                      )
-                  )
-                  .join("")
-              }
-
-            </div>
-
-          </section>
-
-        `
-      )
-      .join("");
-
-
-  bindReadinessEvents();
-
-}
-
-
-function readinessCardHtml(
-  yearLevel,
-  component
-) {
-
-  return `
-
-    <article
-      class="readiness-card"
-      data-year="${escapeAttribute(
-        yearLevel
-      )}"
-      data-component="${escapeAttribute(
-        component.componentId
-      )}"
-    >
-
-      <div class="readiness-card-head">
-
-        <div>
-
-          <strong>
-            Assessment component
-            ${component.number}
-          </strong>
-
-          <p>
-            ${escapeHtml(
-              component.question
-            )}
-          </p>
-
+  container.innerHTML = years.map(yearLevel => {
+    const info = readinessCriteriaForYear(yearLevel);
+    const yearData = saved[yearLevel];
+    const checks = yearData && !Array.isArray(yearData) && yearData.scope === "year"
+      ? yearData.checks || []
+      : READINESS_CRITERIA.map(([id, label]) => ({id, label, checked: false}));
+    const count = checks.filter(check => check.checked).length;
+    const verbs = info.verbs.map(verb => verb.toUpperCase()).join(", ");
+    return `
+      <section class="readiness-year" data-readiness-year="${escapeAttribute(yearLevel)}">
+        <div class="readiness-year-head">
+          <h4>${escapeHtml(yearLevel)}</h4>
+          <span>${count} of ${checks.length} confirmed · ${info.components.length} assessment components considered</span>
         </div>
+        <article class="readiness-card">
+          <div class="readiness-card-head"><div>
+            <strong>Whole-year-level assessment readiness</strong>
+            <p>Confirm each requirement once across all assessment components for ${escapeHtml(yearLevel)}.</p>
+          </div></div>
+          ${info.subjects.length ? `<div class="readiness-subjects">${info.subjects.map(subject => `<span>${escapeHtml(subject)}</span>`).join("")}</div>` : ""}
+          ${verbs ? `<p><strong>Assessed cognitive demands:</strong> ${escapeHtml(verbs)}</p>` : ""}
+          ${info.formats.length ? `<p><strong>Response formats:</strong> ${escapeHtml(info.formats.join("; "))}</p>` : ""}
+          <div class="readiness-checks">${checks.map(check => `
+            <label class="readiness-check">
+              <input type="checkbox" data-year-check="${escapeAttribute(check.id)}" ${check.checked ? "checked" : ""}>
+              <span>${escapeHtml(check.label)}</span>
+            </label>`).join("")}</div>
+        </article>
+      </section>`;
+  }).join("");
 
-
-        <span class="readiness-demand">
-
-          ${
-            component.verbs
-              ?.length
-              ? component.verbs
-                  .map(
-                    (verb) =>
-                      escapeHtml(
-                        verb.toUpperCase()
-                      )
-                  )
-                  .join(" + ")
-              : "EVIDENCE"
-          }
-
-        </span>
-
-      </div>
-
-
-      ${
-        component.subjects
-          ?.length
-          ? `
-
-            <div class="readiness-subjects">
-
-              ${
-                component.subjects
-                  .map(
-                    (subject) => `
-                      <span>
-                        ${escapeHtml(
-                          subject
-                        )}
-                      </span>
-                    `
-                  )
-                  .join("")
-              }
-
-            </div>
-
-          `
-          : ""
-      }
-
-
-      <div class="readiness-checks">
-
-        ${
-          component.checks
-            .map(
-              (check) => `
-
-                <label class="readiness-check">
-
-                  <input
-                    type="checkbox"
-                    data-check="${escapeAttribute(
-                      check.id
-                    )}"
-                    ${
-                      check.checked
-                        ? "checked"
-                        : ""
-                    }
-                  >
-
-                  <span>
-                    ${escapeHtml(
-                      check.label
-                    )}
-                  </span>
-
-                </label>
-
-              `
-            )
-            .join("")
-        }
-
-      </div>
-
-    </article>
-
-  `;
-
+  container.querySelectorAll("[data-readiness-year]").forEach(section => {
+    const yearLevel = section.dataset.readinessYear;
+    section.querySelectorAll("input[data-year-check]").forEach(checkbox => {
+      checkbox.addEventListener("change", () => {
+        const readiness = structuredClone(unitPlan.sequence?.readinessChecks || {});
+        const existingYear = readiness[yearLevel];
+        const current = existingYear && !Array.isArray(existingYear) && existingYear.scope === "year"
+          ? existingYear
+          : {scope: "year", componentIds: readinessComponentsForYear(yearLevel).map(c => c.id),
+             checks: READINESS_CRITERIA.map(([id, label]) => ({id, label, checked: false}))};
+        const item = current.checks.find(check => check.id === checkbox.dataset.yearCheck);
+        if (!item) return;
+        item.checked = checkbox.checked;
+        readiness[yearLevel] = current;
+        updateUnitPlan("sequence.readinessChecks", readiness);
+        const progress = section.querySelector(".readiness-year-head span");
+        if (progress) progress.textContent = `${current.checks.filter(check => check.checked).length} of ${current.checks.length} confirmed · ${readinessComponentsForYear(yearLevel).length} assessment components considered`;
+      });
+    });
+  });
 }
-
-
-function bindReadinessEvents() {
-
-  document
-    .querySelectorAll(
-      ".readiness-card"
-    )
-    .forEach(
-      (card) => {
-
-        const yearLevel =
-          card.dataset.year;
-
-
-        const componentId =
-          card.dataset.component;
-
-
-        card
-          .querySelectorAll(
-            "input[data-check]"
-          )
-          .forEach(
-            (checkbox) => {
-
-              checkbox.addEventListener(
-                "change",
-                () => {
-
-                  const readiness =
-                    structuredClone(
-                      unitPlan.sequence
-                        ?.readinessChecks ||
-                      {}
-                    );
-
-
-                  const component =
-                    readiness[
-                      yearLevel
-                    ]
-                      ?.find(
-                        (item) =>
-                          item.componentId ===
-                          componentId
-                      );
-
-
-                  const check =
-                    component?.checks
-                      ?.find(
-                        (item) =>
-                          item.id ===
-                          checkbox.dataset.check
-                      );
-
-
-                  if (
-                    !check
-                  ) {
-
-                    return;
-
-                  }
-
-
-                  check.checked =
-                    checkbox.checked;
-
-
-                  updateUnitPlan(
-                    "sequence.readinessChecks",
-                    readiness
-                  );
-
-                }
-              );
-
-            }
-          );
-
-      }
-    );
-
-}
-
 
 // ============================================================
 // TEACHING PRIORITIES
