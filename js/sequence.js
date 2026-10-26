@@ -2990,13 +2990,15 @@ function suggestWeeklySequence() {
     );
 
 
+  // Always offer a genuine rebuild when lessons already contain content.
+  // Older generated text may have been saved without matching _generated metadata.
   const existingFilled = weeks.some(week => (week.lessons || []).some(lesson =>
     ["purpose", "activity", "evidence", "integration"].some(field =>
-      String(lesson[field] || "").trim() &&
-      lesson._generated?.[field] !== lesson[field])));
-  const refreshFilled = existingFilled && window.confirm(
-    "Replace existing lesson suggestions with concise teaching points? Cancel keeps all existing text and fills only empty fields. Teacher-written content may be replaced if you choose OK."
-  );
+      String(lesson[field] || "").trim())));
+  if (existingFilled && !window.confirm(
+    "Regenerate the teaching sequence with new content-focused suggestions? This replaces existing lesson intentions, activities and formative checks, including teacher edits. Cancel leaves your plan unchanged. Back up your unit first."
+  )) return;
+  const refreshFilled = true;
   weeks =
     weeks.map(
       (week) => {
