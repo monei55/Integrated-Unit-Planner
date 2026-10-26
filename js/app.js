@@ -346,11 +346,10 @@ async function initialisePage(
 
 
 case "review-print": {
-  const module = await import("./print.js?v=20261026-curriculum1");
-
+  const module = await import("./print.js?v=20261026-as-fix");
   module.initPrintPage();
-
   break;
+}
 
 }
 
