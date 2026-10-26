@@ -306,7 +306,7 @@ async function initialisePage(
 
       const module =
         await import(
-          "./daily-review.js"
+          "./daily-review.js?v=20261026-weekly1"
         );
 
       module.initDailyReviewPage();
