@@ -1063,26 +1063,21 @@ function buildTeachingPriorities() {
   }
   const previous = Array.isArray(unitPlan.sequence?.teachingPriorities)
     ? unitPlan.sequence.teachingPriorities : [];
-  if (previous.length && !window.confirm("Replace suggested teaching priorities? Existing teacher notes and checkmarks will be retained where priorities match.")) return;
-  const generated = [];
+  if (previous.length && !window.confirm(
+    "Refresh teaching priorities? Existing priorities and teacher notes will be kept; only new suggestions will be added."
+  )) return;
+  const result = [...previous];
+  const existingKeys = new Set(previous.map(item =>
+    `${item.subject}|${String(item.focus || "").replace(/^•\s*/, "").trim().toLowerCase()}`));
   Object.entries(rowsGroupedBySubject(rows)).forEach(([subject, subjectRows]) => {
-    const statements = conciseTeachingTargets(subjectRows).slice(0, 5);
-    statements.forEach((focus, index) => {
-      generated.push(makePriority("Explicit teaching", subject, "• " + focus,
-        "Linked to selected curriculum and assessment demands.", "Curriculum + assessment"));
+    conciseTeachingTargets(subjectRows).slice(0, 5).forEach(focus => {
+      const key = `${subject}|${focus.trim().toLowerCase()}`;
+      if (!existingKeys.has(key)) {
+        result.push(makePriority("Explicit teaching", subject, "• " + focus,
+          "", "Curriculum + assessment"));
+        existingKeys.add(key);
+      }
     });
-  });
-  const existingBySubject = new Map();
-  previous.forEach(item => {
-    const key = String(item.subject || "");
-    if (!existingBySubject.has(key)) existingBySubject.set(key, []);
-    existingBySubject.get(key).push(item);
-  });
-  const result = generated.map((item, index) => {
-    const sameSubject = generated.slice(0, index).filter(p => p.subject === item.subject).length;
-    const old = existingBySubject.get(item.subject)?.[sameSubject];
-    return old ? {...item, id: old.id || item.id,
-      teacherNote: old.teacherNote || "", completed: Boolean(old.completed)} : item;
   });
   updateUnitPlan("sequence.teachingPriorities", result);
   renderSavedTeachingPriorities();
@@ -1361,107 +1356,20 @@ function renderSavedTeachingPriorities() {
 }
 
 
-function teachingPriorityHtml(
-  priority
-) {
-
-  return `
-
-    <article
-      class="teaching-priority-card"
-      data-priority="${escapeAttribute(
-        priority.id
-      )}"
-    >
-
-      <div>
-
-        <input
-          type="checkbox"
-          class="priority-complete"
-          ${
-            priority.completed
-              ? "checked"
-              : ""
-          }
-          aria-label="Mark teaching priority as addressed"
-        >
-
-      </div>
-
-
-      <div class="priority-main">
-
-        <div class="priority-meta">
-
-          <span class="priority-type">
-            ${escapeHtml(
-              priority.type
-            )}
-          </span>
-
-          <strong>
-            ${escapeHtml(
-              priority.subject
-            )}
-          </strong>
-
-        </div>
-
-
-        <textarea
-          class="priority-focus"
-          rows="3"
-        >${escapeHtml(
-          priority.focus
-        )}</textarea>
-
-
-        <div class="priority-reason" style="display:none">
-
-          <strong>
-            Why this matters:
-          </strong>
-
-          ${escapeHtml(
-            priority.reason
-          )}
-
-        </div>
-
-
-        <label class="priority-note-label">
-
-          Teacher planning note
-
-          <textarea
-            class="priority-note"
-            rows="2"
-            placeholder="Add specific texts, examples, resources, scaffolds or teaching decisions..."
-          >${escapeHtml(
-            priority.teacherNote ||
-            ""
-          )}</textarea>
-
-        </label>
-
-      </div>
-
-
-      <div class="priority-source">
-
-        ${escapeHtml(
-          priority.source
-        )}
-
-      </div>
-
-    </article>
-
-  `;
-
+function teachingPriorityHtml(priority) {
+  return `<article class="teaching-priority-card" data-priority="${escapeAttribute(priority.id)}"
+    style="display:flex;gap:10px;align-items:flex-start;margin:8px 0;padding:10px;">
+    <input type="checkbox" class="priority-complete" ${priority.completed ? "checked" : ""}
+      aria-label="Mark teaching priority as addressed">
+    <div style="flex:1;min-width:0;">
+      <strong>${escapeHtml(priority.subject || "")}</strong>
+      <textarea class="priority-focus" rows="2" style="width:100%;margin-top:5px;">${escapeHtml(priority.focus || "")}</textarea>
+      <details><summary style="cursor:pointer;font-size:.85em;">Teacher note</summary>
+        <textarea class="priority-note" rows="2" style="width:100%;" placeholder="Optional teaching notes">${escapeHtml(priority.teacherNote || "")}</textarea>
+      </details>
+    </div>
+  </article>`;
 }
-
 
 function bindTeachingPriorityEvents() {
 
@@ -2302,6 +2210,30 @@ function renderSavedWeeklySequence() {
 
   }
 
+
+  // Compact, lesson-per-dot-point weekly overview; full editor remains available.
+  container.innerHTML = weeks.map(week => {
+    const groups = {};
+    (week.lessons || []).forEach(lesson => {
+      const subject = lesson.subject || "Integrated";
+      (groups[subject] ||= []).push(lesson);
+    });
+    const overview = Object.entries(groups).map(([subject, lessons]) => `
+      <section style="margin:12px 0;">
+        <strong>${escapeHtml(subject)} — ${lessons.length} lesson${lessons.length === 1 ? "" : "s"}</strong>
+        <ul style="margin:6px 0;padding-left:24px;">${lessons.map((lesson, index) => `
+          <li style="margin:5px 0;">${escapeHtml(lesson.activity?.replace(/^•\s*/, "").trim() || lesson.purpose || `Lesson ${index + 1}: add teaching focus`)}</li>
+        `).join("")}</ul>
+      </section>`).join("");
+    return `<section class="weekly-overview" style="margin-bottom:16px;">
+      <h3>Week ${escapeHtml(week.number)}</h3>${overview}
+      <details><summary style="cursor:pointer;margin:8px 0;">Edit weekly lessons and planning details</summary>
+        ${weeklySequenceHtml(week)}
+      </details>
+    </section>`;
+  }).join("");
+  bindWeeklySequenceEvents();
+  return;
 
   container.innerHTML =
     weeks
@@ -3215,6 +3147,13 @@ function suggestWeeklySequence() {
     );
 
 
+  const existingFilled = weeks.some(week => (week.lessons || []).some(lesson =>
+    ["purpose", "activity", "evidence", "integration"].some(field =>
+      String(lesson[field] || "").trim() &&
+      lesson._generated?.[field] !== lesson[field])));
+  const refreshFilled = existingFilled && window.confirm(
+    "Replace existing lesson suggestions with concise teaching points? Cancel keeps all existing text and fills only empty fields. Teacher-written content may be replaced if you choose OK."
+  );
   weeks =
     weeks.map(
       (week) => {
@@ -3289,8 +3228,11 @@ function suggestWeeklySequence() {
                 1;
 
 
-              return suggestLessonContent(
-                lesson,
+              const base = refreshFilled
+                ? {...lesson, purpose: "", activity: "", evidence: "", integration: ""}
+                : {...lesson};
+              const suggested = suggestLessonContent(
+                base,
                 weekPhase,
                 phasePriorities,
                 subjectRows,
@@ -3302,6 +3244,12 @@ function suggestWeeklySequence() {
                 week.number,
                 weeks.length
               );
+              return {...suggested, _generated: {
+                purpose: suggested.purpose,
+                activity: suggested.activity,
+                evidence: suggested.evidence,
+                integration: suggested.integration
+              }};
 
             }
           );
@@ -3359,30 +3307,8 @@ function suggestWeeklySequence() {
     );
 
 
-  if (
-    output
-  ) {
-
-    output.innerHTML = `
-
-      <strong>
-        Suggested teaching sequence created
-      </strong>
-
-      <p>
-        Each allocated lesson now has one concise teaching focus. Existing teacher entries are preserved.
-      </p>
-
-      <p>
-        Existing teacher entries have not been
-        overwritten. Review and edit the sequence
-        so it reflects the actual students, texts,
-        examples, resources and teaching context.
-      </p>
-
-    `;
-
-  }
+  if (output) output.innerHTML = `<strong>Weekly suggestions refreshed.</strong>
+    <p>One concise teaching point per allocated lesson. Use “Edit weekly lessons” to customise.</p>`;
 
 
   renderSavedWeeklySequence();
