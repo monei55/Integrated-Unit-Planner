@@ -1116,10 +1116,13 @@ export function getSelectedCurriculumRows() {
     );
 
 
-  return DATA.filter(
+  const liveData = Array.isArray(window.CURRICULUM_DATA)
+    ? window.CURRICULUM_DATA
+    : DATA;
+
+  return liveData.filter(
     (row) =>
-      row.type ===
-        "achievement_standard" &&
+      row.type === "achievement_standard" &&
       selected.has(row.code)
   );
 
