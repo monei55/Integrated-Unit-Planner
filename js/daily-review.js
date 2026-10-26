@@ -216,10 +216,13 @@ function buildDailyReviewBank() {
   );
 
 
-  buildWeeklyDailyReviewPlan(
-    lessonSequence,
-    curriculumRows
+  const existingWeeks = unitPlan.daily?.weeklyPlan || [];
+  const replaceGenerated = !existingWeeks.length || window.confirm(
+    "Refresh the weekly Daily Review suggestions? This will replace existing Monday–Friday text. Teacher notes and year-level prompts will be retained. Choose Cancel to keep your current reviews."
   );
+  if (replaceGenerated) {
+    buildWeeklyDailyReviewPlan(lessonSequence, curriculumRows, true);
+  }
 
 
   if (output) {
@@ -1014,7 +1017,8 @@ function buildLessonRetrievalQuestion(
 
 function buildWeeklyDailyReviewPlan(
   lessonSequence,
-  curriculumRows
+  curriculumRows,
+  refresh = false
 ) {
 
   const weekCount =
@@ -1056,7 +1060,8 @@ function buildWeeklyDailyReviewPlan(
           weekNumber,
           lessonSequence,
           curriculumRows,
-          previous
+          previous,
+          refresh
         );
 
       }
@@ -1075,109 +1080,81 @@ function buildWeeklyDailyReviewPlan(
 // BUILD ONE WEEK
 // ============================================================
 
-function buildDailyReviewWeek(
-  weekNumber,
-  lessonSequence,
-  curriculumRows,
-  previous
-) {
+function buildDailyReviewWeek(weekNumber, lessonSequence, curriculumRows, previous, refresh = false) {
+  const earlier = lessonSequence.filter(lesson => lesson.week < weekNumber);
+  const recent = earlier.filter(lesson => lesson.week === weekNumber - 1);
+  const older = earlier.filter(lesson => lesson.week < weekNumber - 1);
+  const days = ["monday", "tuesday", "wednesday", "thursday", "friday"];
+  const actions = ["Recall", "Recognise", "Apply", "Explain", "Check"];
+  const generated = {};
 
-  const priorLessons =
-    lessonSequence.filter(
-      (lesson) =>
-        lesson.week <
-        weekNumber
-    );
-
-
-  const recentLessons =
-    priorLessons.filter(
-      (lesson) =>
-        lesson.week ===
-        weekNumber - 1
-    );
-
-
-  const olderLessons =
-    priorLessons.filter(
-      (lesson) =>
-        lesson.week <
-        weekNumber - 1
-    );
-
-
-  const reviewPool =
-    buildReviewPool(
-      recentLessons,
-      olderLessons,
-      curriculumRows
-    );
-
-
-  const yearSpecific =
-    buildYearSpecificReviewItems(
-      weekNumber,
-      priorLessons,
-      curriculumRows
-    );
-
+  if (weekNumber === 1 || !earlier.length) {
+    const prompts = [
+      ["Recall familiar places and journeys.", "Name words already known about places."],
+      ["Identify features in a familiar photograph.", "Explain one choice."],
+      ["Sort familiar examples and non-examples.", "Correct one misplaced example."],
+      ["Describe a familiar place orally.", "Use one accurate describing word."],
+      ["Recall two ideas practised this week.", "Correct one error together."]
+    ];
+    days.forEach((day, index) => generated[day] = bulletText(prompts[index]));
+  } else {
+    const recentFocuses = reviewLessonFocuses(recent);
+    const spacedFocuses = reviewLessonFocuses(older);
+    const fallback = "a key idea taught last week";
+    days.forEach((day, index) => {
+      const current = recentFocuses[index % Math.max(recentFocuses.length, 1)] || fallback;
+      const spaced = spacedFocuses.length
+        ? spacedFocuses[(weekNumber + index) % spacedFocuses.length]
+        : "";
+      const first = `${actions[index]}: ${current}.`;
+      const second = spaced
+        ? `${index < 2 ? "Revisit" : "Connect"}: ${spaced}.`
+        : [
+            "Match a word to its meaning.",
+            "Choose a correct example.",
+            "Use the learning in a new example.",
+            "Explain how you know.",
+            "Correct a familiar error."
+          ][index];
+      generated[day] = bulletText([first, second]);
+    });
+  }
 
   return {
-
-    id:
-      previous?.id ||
-      crypto.randomUUID(),
-
-    week:
-      weekNumber,
-
-    monday:
-      previous?.monday ||
-      buildMondayReview(
-        weekNumber,
-        reviewPool
-      ),
-
-    tuesday:
-      previous?.tuesday ||
-      buildTuesdayReview(
-        weekNumber,
-        reviewPool
-      ),
-
-    wednesday:
-      previous?.wednesday ||
-      buildWednesdayReview(
-        weekNumber,
-        reviewPool
-      ),
-
-    thursday:
-      previous?.thursday ||
-      buildThursdayReview(
-        weekNumber,
-        reviewPool
-      ),
-
-    friday:
-      previous?.friday ||
-      buildFridayReview(
-        weekNumber,
-        reviewPool
-      ),
-
-    yearSpecific:
-      previous?.yearSpecific ||
-      yearSpecific,
-
-    teacherNote:
-      previous?.teacherNote ||
-      ""
-
+    id: previous?.id || crypto.randomUUID(),
+    week: weekNumber,
+    ...Object.fromEntries(days.map(day => [day,
+      refresh ? generated[day] : (previous?.[day] ?? generated[day])
+    ])),
+    yearSpecific: previous?.yearSpecific || buildYearSpecificReviewItems(
+      weekNumber, earlier, curriculumRows
+    ),
+    teacherNote: previous?.teacherNote || ""
   };
-
 }
 
+// Extract short, distinct learning focuses from lessons already taught.
+// Never use the current or future week's lessons for review.
+function reviewLessonFocuses(lessons) {
+  const seen = new Set();
+  return lessons.map(lesson => {
+    const activity = String(lesson.activity || "")
+      .split(/\n|•/).map(part => part.trim()).filter(Boolean)
+      .find(part => !/^(introduce and unpack|check:|students identify the knowledge)/i.test(part));
+    const source = activity || lesson.purpose || "";
+    let focus = String(source)
+      .replace(/^[-•\s]+/, "")
+      .replace(/^(English|HASS|Mathematics):\s*/i, "")
+      .replace(/^(students need to|students|they|model|teach|practise|review|identify and practise)\s+/i, "")
+      .replace(/\s+/g, " ").replace(/[.!]+$/, "").trim();
+    if (/achievement standard aspect|knowledge, features or relationships required/i.test(focus)) return "";
+    if (focus.length > 90) focus = focus.slice(0, 90).replace(/\s+\S*$/, "");
+    const key = focus.toLowerCase();
+    if (!focus || seen.has(key)) return "";
+    seen.add(key);
+    return focus.charAt(0).toLowerCase() + focus.slice(1);
+  }).filter(Boolean);
+}
 
 // ============================================================
 // RECENT + SPACED REVIEW POOL
