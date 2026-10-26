@@ -4498,62 +4498,78 @@ function updateDraftQuestion(
 // Observable progression stays within the cognitive demand of the C aspect.
 // For unsupported aspects, explicitly request teacher-written descriptors;
 // never present generic adjectives as validated standards.
-function suggestedDescriptors(row) {
+function suggestedDescriptors(row, assessment) {
   const t = String(row.text || "").toLowerCase();
-  if (/recognise the features of familiar places/.test(t)) return {
-    A: "Accurately recognises a range of familiar place features, relevant reasons places are special and appropriate ways to care for them across the provided examples.",
-    B: "Correctly recognises familiar place features, reasons places are special and ways to care for them in the provided examples, with occasional omissions.",
-    D: "Recognises some familiar place features or ways to care for places, but does not yet consistently recognise the other required elements.",
-    E: "Recognises an isolated familiar place feature or caring action with substantial support; other elements are not yet evident."
-  };
-  if (/pose questions.*sort and record/.test(t)) return {
-    A: "Poses relevant, focused questions; sorts observations consistently into suitable groups and records information accurately and clearly.",
-    B: "Poses a relevant question, sorts most observations into suitable groups and records information clearly with minor omissions.",
-    D: "Poses a simple question or sorts and records some information, with incomplete or inconsistent evidence across the requirements.",
-    E: "With support, contributes an initial question or records an isolated observation; the remaining requirements are not yet demonstrated."
-  };
-  if (/share a perspective and draw conclusions/.test(t)) return {
-    A: "Clearly shares a perspective and draws a conclusion that is consistently supported by relevant observations or information.",
-    B: "Shares a clear perspective and draws a relevant conclusion using information from the task.",
-    D: "Shares a perspective or offers a tentative conclusion, but does not yet demonstrate both clearly.",
-    E: "Communicates an initial preference or observation with support; a conclusion is not yet evident."
-  };
-  if (/create short written texts.*retelling stories/.test(t)) return {
-    A: "Creates a coherent short written retelling with a clear event sequence, relevant character or setting details, and purposeful vocabulary; images support meaning where appropriate.",
-    B: "Creates a short written retelling with main events in order, relevant details and some sequencing vocabulary; uses images where appropriate.",
-    D: "Creates a brief written response showing some story events, but the retelling is incomplete or the order is unclear; may rely on images.",
-    E: "Produces isolated words, marks or images relating to the story, with limited connected written retelling."
-  };
-  if (/identify the language features.*print and images/.test(t)) return {
-    A: "Accurately identifies the relevant language features and print–image connections across several examples, including less obvious examples.",
-    B: "Correctly identifies the relevant language features and print–image connections in familiar examples, with minor omissions.",
-    D: "Identifies some relevant features or print–image connections but not yet both consistently.",
-    E: "Points to or selects an isolated feature with support; print–image connections are not yet evident."
-  };
-  if (/retell, report information and state/.test(t)) return {
-    A: "Retells key events coherently, reports accurate relevant information and clearly states thoughts, feelings and key ideas with suitable detail.",
-    B: "Retells main events in order, reports relevant information and states thoughts, feelings and key ideas clearly.",
-    D: "Retells some events or reports an item of information, but thoughts, feelings or key ideas are incomplete or unclear.",
-    E: "Shares an isolated event, fact or feeling with support; the other required responses are not yet evident."
-  };
-  if (/use words and phrases from learning and texts/.test(t)) return {
-    A: "Uses a varied, accurate selection of words and phrases from learning and texts purposefully in the response.",
-    B: "Uses several relevant words and phrases from learning and texts accurately in the response.",
-    D: "Uses an occasional familiar word or phrase from learning and texts, sometimes inaccurately.",
-    E: "Repeats or selects an isolated learned word with support; independent use is not yet evident."
-  };
-  if (/read, view and comprehend/.test(t)) return {
-    A: "Accurately connects characters, settings and events across the text and makes clear, relevant connections to personal experience.",
-    B: "Makes relevant connections between characters, settings and events and links these to a personal experience.",
-    D: "Recognises some characters, settings or events but makes incomplete or unclear connections to the text or personal experience.",
-    E: "Recognises an isolated character, setting or event with support; connections are not yet evident."
-  };
-  return {
-    A: "TEACHER REVIEW REQUIRED — describe observable, consistently accurate evidence of this same curriculum demand; do not introduce a higher-order verb.",
-    B: "TEACHER REVIEW REQUIRED — describe observable evidence that is stronger than C without changing the cognitive demand.",
-    D: "TEACHER REVIEW REQUIRED — describe which parts of the stated demand are emerging or inconsistent.",
-    E: "TEACHER REVIEW REQUIRED — describe the limited or supported evidence observable for this demand."
-  };
+  const linked = (assessment?.components || []).filter(c =>
+    (c.selectedStandardCodes || []).includes(row.code));
+  const task = linked.map(c => c.questionText || "").filter(Boolean).join(" ");
+  const journey = /are we there yet|journey|travel|trip|places visited/i.test(
+    [unitPlan.setup?.title, unitPlan.setup?.context, task].filter(Boolean).join(" "));
+  const place = journey ? "a place encountered in the journey or local area" : "the place studied";
+  const levels = (A, B, D, E) => ({A, B, D, E});
+
+  // Each progression changes the observable completeness, accuracy, clarity or
+  // independence of the SAME curriculum demand. C remains the verbatim standard.
+  if (/identify the location and nature.*natural.*managed.*constructed/.test(t))
+    return levels(
+      `Identifies where ${place} is located; accurately distinguishes natural, managed and constructed features, explains a relevant change and identifies practical ways people can care for it, using evidence from the sources.`,
+      `Identifies where ${place} is located and distinguishes its natural, managed and constructed features; identifies a relevant change and a suitable caring action, with minor omissions.`,
+      `Identifies the location or some features of ${place}, but confuses feature types or gives an incomplete account of change or care.`,
+      `Identifies an isolated feature of ${place} with prompting; its location, change and ways of caring for it are not yet demonstrated.`);
+  if (/develop questions and collect, sort and record/.test(t) || /pose questions.*sort and record/.test(t))
+    return levels(
+      "Develops relevant questions, collects information from observations and supplied sources, sorts it into suitable categories and records the information accurately and clearly.",
+      "Develops a relevant question, collects information from observations and supplied sources, and sorts and records it appropriately with minor omissions.",
+      "Contributes a question and collects or records some information, but sorting or recording is incomplete or inconsistent.",
+      "With prompting, gives an initial question or records an isolated observation; collecting and sorting information are not yet evident.");
+  if (/draw conclusions and make proposals/.test(t))
+    return levels(
+      "Draws a conclusion supported by two relevant observations or source details and proposes a practical action, explaining how the action addresses the conclusion.",
+      "Draws a conclusion using a relevant observation or source detail and proposes a practical action linked to that conclusion.",
+      "States an observation and suggests an action, but does not clearly draw a conclusion or connect the proposal to the evidence.",
+      "Identifies an isolated detail with support; a conclusion and relevant proposal are not yet evident.");
+  if (/share narratives and observations.*subject-specific terms/.test(t))
+    return levels(
+      "Shares a coherent narrative and accurate observations about people, places or the past; refers to relevant sources and uses subject-specific terms accurately throughout.",
+      "Shares a clear narrative and relevant observations about people, places or the past; uses a source and appropriate subject-specific terms.",
+      "Shares some events or observations, but the source connection or use of subject-specific terms is unclear or incomplete.",
+      "Shares an isolated event or observation with prompting; source references and subject-specific terms are not yet evident.");
+  if (/read, view and comprehend/.test(t))
+    return levels(
+      "Accurately connects characters, settings and events across the text, monitors meaning and makes clear, relevant connections to personal experience.",
+      "Makes relevant connections between characters, settings and events, checks meaning and links these to a personal experience.",
+      "Recognises some characters, settings or events but makes incomplete or unclear connections to the text or personal experience.",
+      "Recognises an isolated character, setting or event with support; connections are not yet evident.");
+  if (/identify the text structures.*narrative and informative/.test(t))
+    return levels(
+      "Correctly identifies structures of both familiar narrative and informative texts and points to accurate examples of language and visual features, explaining their role in each text.",
+      "Identifies structures of familiar narrative and informative texts and relevant language and visual features, with minor omissions.",
+      "Identifies a feature or part of the structure of a familiar text, but does not yet identify structures and language and visual features across both text types.",
+      "Points to an isolated text or image feature with support; the text structure and other features are not yet identified.");
+  if (/create short written and\/or multimodal texts.*recounts/.test(t) || /create short written texts.*retelling stories/.test(t))
+    return levels(
+      "Creates a coherent short recount with events in a clear sequence, relevant character and setting details and purposeful vocabulary; images support meaning where appropriate.",
+      "Creates a short recount with main events in order, relevant character or setting details and suitable vocabulary; uses images where appropriate.",
+      "Creates a brief recount containing some events or characters, but the sequence or details are incomplete or unclear.",
+      "Produces isolated words, images or statements about the story with support; a connected recount is not yet evident.");
+  if (/recognise the features of familiar places/.test(t))
+    return levels("Accurately recognises familiar place features, reasons places are special and ways to care for them across the provided examples.", "Recognises familiar place features, reasons they are special and suitable ways to care for them, with minor omissions.", "Recognises some features or caring actions but does not yet demonstrate all the required elements.", "Recognises an isolated place feature or caring action with substantial prompting.");
+  if (/share a perspective and draw conclusions/.test(t))
+    return levels("Shares a clear perspective and draws a conclusion supported by several relevant observations.", "Shares a perspective and draws a relevant conclusion using information from the task.", "Shares a perspective or a tentative conclusion, but does not clearly demonstrate both.", "Communicates an initial preference or observation with prompting; a conclusion is not yet evident.");
+  if (/identify the language features.*print and images/.test(t))
+    return levels("Accurately identifies relevant language features and connections between print and images across several examples.", "Identifies relevant language features and print–image connections in familiar examples, with minor omissions.", "Identifies some language features or print–image connections but not both consistently.", "Points to an isolated feature with prompting; connections are not yet evident.");
+  if (/retell, report information and state/.test(t))
+    return levels("Retells events coherently, reports accurate information and clearly states thoughts, feelings and key ideas with relevant detail.", "Retells main events in order, reports relevant information and states thoughts, feelings and key ideas clearly.", "Retells some events or reports information, but the thoughts, feelings or key ideas are incomplete.", "Shares an isolated event, fact or feeling with support; other requirements are not yet evident.");
+  if (/use words and phrases from learning and texts/.test(t))
+    return levels("Purposefully uses a varied and accurate selection of words and phrases from learning and texts.", "Uses several relevant words and phrases from learning and texts accurately.", "Uses an occasional familiar word or phrase, sometimes inaccurately.", "Repeats or selects an isolated learned word with prompting; independent use is not yet evident.");
+  // Fallback: use the actual demand rather than a generic placeholder. These
+  // drafts remain editable, and no unsupported curriculum verb is introduced.
+  const demand = String(row.text || "the selected aspect").replace(/\s+/g, " ").trim();
+  return levels(
+    `Demonstrates all parts of this aspect accurately and consistently in the assessment evidence: ${demand}`,
+    `Demonstrates all main parts of this aspect accurately, with a minor omission in the assessment evidence: ${demand}`,
+    `Demonstrates some parts of this aspect, but other required parts are missing or inconsistent: ${demand}`,
+    `Demonstrates an isolated part of this aspect with prompting; most required parts are not yet evident: ${demand}`);
 }
 
 function buildGtmj() {
@@ -4600,7 +4616,7 @@ function buildGtmj() {
   const guide = {};
   rows.forEach(row => {
     const existing = oldGuide[row.code] || {};
-    const suggested = suggestedDescriptors(row);
+    const suggested = suggestedDescriptors(row, assessment);
     guide[row.code] = {
       A: regenerate ? suggested.A : (existing.A || suggested.A),
       B: regenerate ? suggested.B : (existing.B || suggested.B),
