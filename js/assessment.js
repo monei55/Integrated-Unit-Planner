@@ -4557,99 +4557,64 @@ function suggestedDescriptors(row) {
 }
 
 function buildGtmj() {
-
-  const yearLevel =
-    unitPlan.assessments
-      .activeYear;
-
-
+  const yearLevel = unitPlan.assessments.activeYear;
   if (!yearLevel) {
+    window.alert("Select an assessment year level first.");
     return;
   }
 
-
-  const assessment =
-    getAssessment(
-      yearLevel
-    );
-
-
-  const rows =
-    rowsForAssessmentYear(
-      yearLevel
-    );
-
-
-  const box =
-    document.getElementById(
-      "gtmjBuilder"
-    );
-
-
+  const rows = rowsForAssessmentYear(yearLevel);
+  const box = document.getElementById("gtmjBuilder");
   if (!box) {
+    window.alert("The marking guide area could not be found. Please reopen Step 4.");
     return;
   }
-
-
   if (!rows.length) {
-
-    box.innerHTML = `
-
-      <div class="empty">
-
-        Select Achievement Standard
-        aspects for
-        ${escapeHtml(yearLevel)}
-        before building a GTMJ.
-
-      </div>
-
-    `;
-
+    window.alert("Select Achievement Standard aspects in Step 2 first.");
     return;
-
   }
 
+  const assessment = getAssessment(yearLevel);
+  const oldGuide = assessment.gtMj || {};
+  const hasExisting = rows.some(row => {
+    const saved = oldGuide[row.code];
+    return saved && ["A", "B", "D", "E"].some(level =>
+      String(saved[level] || "").trim()
+    );
+  });
 
-  const gtMj = {};
+  // The former Build GTMJ action silently reused every stored descriptor,
+  // so clicking it after changing the assessment appeared to do nothing.
+  // Offer an explicit choice rather than overwriting teacher edits silently.
+  let regenerate = true;
+  if (hasExisting) {
+    regenerate = window.confirm(
+      `Rebuild the ${yearLevel} A–E marking guide from the current selected Achievement Standard aspects?\n\n` +
+      "OK — replace existing A, B, D and E descriptors with fresh draft suggestions.\n" +
+      "Cancel — keep your current descriptors and simply display the guide.\n\n" +
+      "Any teacher edits in the existing marking guide will be replaced if you choose OK. " +
+      "The C standard will always remain the exact Achievement Standard wording."
+    );
+  }
 
+  const guide = {};
+  rows.forEach(row => {
+    const existing = oldGuide[row.code] || {};
+    const suggested = suggestedDescriptors(row);
+    guide[row.code] = {
+      A: regenerate ? suggested.A : (existing.A || suggested.A),
+      B: regenerate ? suggested.B : (existing.B || suggested.B),
+      C: row.text,
+      D: regenerate ? suggested.D : (existing.D || suggested.D),
+      E: regenerate ? suggested.E : (existing.E || suggested.E)
+    };
+  });
 
-  rows.forEach(
-    (row) => {
-
-      const existing = assessment.gtMj?.[row.code] || {};
-      const proposed = suggestedDescriptors(row);
-      gtMj[row.code] = {
-        A: existing.A || proposed.A,
-        B: existing.B || proposed.B,
-        C: row.text, // Always the exact Achievement Standard aspect.
-        D: existing.D || proposed.D,
-        E: existing.E || proposed.E
-      };
-
-    }
-  );
-
-
-  assessment.gtMj =
-    gtMj;
-
-
-  saveAssessment(
-    yearLevel,
-    assessment
-  );
-
-
-  renderStoredGtmj(
-    yearLevel
-  );
-
-
-  renderQualityCheck(
-    yearLevel
-  );
-
+  assessment.gtMj = guide;
+  saveAssessment(yearLevel, assessment);
+  renderStoredGtmj(yearLevel);
+  renderQualityCheck(yearLevel);
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 
