@@ -1777,96 +1777,17 @@ function buildWeeklyOverview() {
 // WEEK OVERVIEW CELL
 // ============================================================
 
-function weekOverviewCell(
-  week,
-  index
-) {
-
-  const lessons =
-    Array.isArray(
-      week.lessons
-    )
-      ? week.lessons
-      : [];
-
-
-  const lessonFocus =
-    lessons
-      .map(
-        (lesson) =>
-          lesson.purpose ||
-          lesson.focus ||
-          ""
-      )
-      .filter(Boolean)
-      .slice(
-        0,
-        4
-      );
-
-
-  return `
-
-    <td>
-
-      ${
-        week.focus
-          ? `
-
-            <div class="week-overview-focus">
-              ${escapeHtml(
-                week.focus
-              )}
-            </div>
-
-          `
-          : ""
-      }
-
-
-      ${
-        lessonFocus.length
-          ? `
-
-            <ul class="template-list">
-
-              ${
-                lessonFocus
-                  .map(
-                    (focus) => `
-
-                      <li>
-                        ${escapeHtml(
-                          shortenText(
-                            focus,
-                            150
-                          )
-                        )}
-                      </li>
-
-                    `
-                  )
-                  .join("")
-              }
-
-            </ul>
-
-          `
-          : `
-
-            <span class="template-muted">
-              Week ${index + 1}
-            </span>
-
-          `
-      }
-
-    </td>
-
-  `;
-
+function weekOverviewCell(week, index) {
+  const lessons = Array.isArray(week.lessons) ? week.lessons : [];
+  const subjects = {};
+  lessons.forEach(lesson => {
+    const subject = lesson.subject || lesson.learningArea || "Integrated";
+    const activity = lesson.activity || lesson.experience || lesson.purpose || lesson.focus || "";
+    if (activity && !subjects[subject]) subjects[subject] = activity;
+  });
+  const values = Object.entries(subjects).map(([subject, activity]) => `${subject}: ${shortenText(activity.replace(/^\s*[•\-]\s*/, ""), 95)}`);
+  return `<td>${week.focus ? `<div class="week-overview-focus">${escapeHtml(week.focus)}</div>` : ""}${values.length ? listHtml(values) : `<span class="template-muted">Week ${index + 1}</span>`}</td>`;
 }
-
 
 // ============================================================
 // DETAILED TEACHING, LEARNING AND ASSESSMENT
@@ -2155,182 +2076,41 @@ function weekCurriculumHtml(
 // WEEK TEACHING SEQUENCE
 // ============================================================
 
-function weekSequenceHtml(
-  week,
-  lessons
-) {
+function weekSequenceHtml(week, lessons) {
+  const groups = {};
+  lessons.forEach((lesson) => {
+    if (!lessonHasContent(lesson)) return;
+    const subject = String(lesson.subject || lesson.learningArea || "Integrated learning").trim();
+    (groups[subject] ||= []).push(lesson);
+  });
 
-  const content = [];
+  const content = Object.entries(groups).map(([subject, items]) => {
+    const purposes = unique(items.map(item => item.purpose || item.focus || "").filter(Boolean));
+    const activities = items.map(item => item.activity || item.experience || "").filter(Boolean);
+    const evidence = unique(items.map(item => item.evidence || "").filter(Boolean));
+    return `
+      <div class="lesson-print-item">
+        <strong>${escapeHtml(subject)} — ${items.length} lesson${items.length === 1 ? "" : "s"}</strong>
+        ${purposes.length ? `<p><strong>Learning intention:</strong> ${escapeHtml(purposes[0])}</p>` : ""}
+        ${activities.length ? `<ul class="template-list">${activities.map((value, i) => `<li>${escapeHtml(value.replace(/^\s*[•\-]\s*/, "").trim())}</li>`).join("")}</ul>` : ""}
+        ${evidence.length ? `<p><strong>Formative assessment:</strong> ${escapeHtml(evidence[0])}</p>` : ""}
+      </div>`;
+  });
 
-
-  lessons.forEach(
-    (
-      lesson,
-      index
-    ) => {
-
-      if (
-        !lessonHasContent(
-          lesson
-        )
-      ) {
-
-        return;
-
-      }
-
-
-      content.push(`
-
-        <div class="lesson-print-item">
-
-          <strong>
-            ${
-              escapeHtml(
-                lesson.subject ||
-                `Learning experience ${index + 1}`
-              )
-            }
-          </strong>
-
-
-          ${
-            lesson.phase
-              ? ` — ${escapeHtml(
-                  lesson.phase
-                )}`
-              : ""
-          }
-
-
-          ${
-            lesson.activity
-              ? `
-
-                <p>
-                  ${escapeHtml(
-                    lesson.activity
-                  )}
-                </p>
-
-              `
-              : ""
-          }
-
-
-          ${
-            lesson.evidence
-              ? `
-
-                <p>
-
-                  <strong>
-                    Check for understanding:
-                  </strong>
-
-                  ${escapeHtml(
-                    lesson.evidence
-                  )}
-
-                </p>
-
-              `
-              : ""
-          }
-
-
-          ${
-            lesson.integration
-              ? `
-
-                <p>
-
-                  <strong>
-                    Integration:
-                  </strong>
-
-                  ${escapeHtml(
-                    lesson.integration
-                  )}
-
-                </p>
-
-              `
-              : ""
-          }
-
-        </div>
-
-      `);
-
-    }
-  );
-
-
-  const daily =
-    getDailyReviewForWeek(
-      week.number
-    );
-
-
+  const integration = unique(lessons.map(item => item.integration || "").filter(Boolean));
+  if (integration.length) {
+    content.push(`<p><strong>Integration:</strong> ${escapeHtml(integration[0])}</p>`);
+  }
+  const daily = getDailyReviewForWeek(week.number);
   if (daily) {
-
-    content.push(`
-
-      <div class="weekly-extra">
-
-        <strong>
-          Daily Review
-        </strong>
-
-        ${textHtml(
-          daily
-        )}
-
-      </div>
-
-    `);
-
+    content.push(`<div class="weekly-extra"><strong>Daily Review</strong>${textHtml(daily)}</div>`);
   }
-
-
-  const wallStatus =
-    learningWallWeeklyNote();
-
-
-  if (
-    wallStatus
-  ) {
-
-    content.push(`
-
-      <div class="weekly-extra">
-
-        <strong>
-          Learning Wall / Bump-It-Up
-        </strong>
-
-        <p>
-          ${escapeHtml(
-            wallStatus
-          )}
-        </p>
-
-      </div>
-
-    `);
-
+  const wallStatus = learningWallWeeklyNote();
+  if (wallStatus) {
+    content.push(`<div class="weekly-extra"><strong>Learning Wall / Bump-It-Up</strong><p>${escapeHtml(wallStatus)}</p></div>`);
   }
-
-
-  return content.length
-    ? content.join("")
-    : emptyHtml(
-        "Teaching sequence not yet recorded."
-      );
-
+  return content.length ? content.join("") : emptyHtml("Teaching sequence not yet recorded.");
 }
-
 
 // ============================================================
 // RESOURCES
@@ -3374,112 +3154,23 @@ function hasDailyReview() {
 }
 
 
-function getDailyReviewForWeek(
-  weekNumber
-) {
-
-  const daily =
-    unitPlan.daily ||
-    {};
-
-
-  const weekly =
-    Array.isArray(
-      daily.weeklyPlan
-    )
-      ? daily.weeklyPlan
-      : [];
-
-
-  const matching =
-    weekly.find(
-      (week) =>
-        String(
-          week.week
-        ) ===
-        String(
-          weekNumber
-        )
-    );
-
-
-  if (
-    matching
-  ) {
-
-    const pieces = [];
-
-
-    [
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday"
-    ]
-      .forEach(
-        (day) => {
-
-          if (
-            matching[
-              day
-            ]
-          ) {
-
-            pieces.push(
-              `${capitalise(
-                day
-              )}: ${matching[day]}`
-            );
-
-          }
-
-        }
-      );
-
-
-    if (
-      pieces.length
-    ) {
-
-      return pieces.join(
-        "\n"
-      );
-
-    }
-
+function getDailyReviewForWeek(weekNumber) {
+  const daily = unitPlan.daily || {};
+  const weekly = Array.isArray(daily.weeklyPlan) ? daily.weeklyPlan : [];
+  const matching = weekly.find(item => String(item.week ?? item.number ?? item.weekNumber) === String(weekNumber));
+  if (matching) {
+    // Prefer the new concise weekly field over legacy Monday–Friday entries.
+    const summary = matching.weeklyReview || matching.reviewFocus || matching.weeklyFocus || matching.summary || matching.review || matching.focus || matching.dotPoints || matching.points;
+    if (typeof summary === "string" && summary.trim()) return summary.trim();
+    if (Array.isArray(summary) && summary.length) return summary.filter(Boolean).join("\n");
+    const legacy = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+      .flatMap(day => String(matching[day] || "").split("\n"))
+      .map(line => line.replace(/^\s*[•\-]\s*/, "").replace(/^(Monday|Tuesday|Wednesday|Thursday|Friday):\s*/i, "").trim())
+      .filter(Boolean);
+    return unique(legacy).slice(0, 5).map(line => `• ${line}`).join("\n");
   }
-
-
-  const bank = [];
-
-
-  [
-    daily.vocabulary,
-    daily.knowledge,
-    daily.fluency,
-    daily.application
-  ]
-    .filter(Boolean)
-    .forEach(
-      (value) =>
-        bank.push(
-          value
-        )
-    );
-
-
-  return bank
-    .slice(
-      0,
-      2
-    )
-    .join(
-      "\n"
-    );
-
+  return "";
 }
-
 
 // ============================================================
 // DIFFERENTIATION
